@@ -1,1 +1,1210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Character / World Forge</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --panel-3: #273449;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --line: #334155;
+      --brand: #38bdf8;
+      --amber: #f59e0b;
+      --cyan: #22d3ee;
+      --emerald: #10b981;
+      --rose: #fb7185;
+      --danger: #ef4444;
+      --ok: #22c55e;
+      --warn: #f97316;
+      --shadow: 0 20px 80px rgba(0, 0, 0, .35);
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, .12), transparent 28rem),
+                  radial-gradient(circle at bottom right, rgba(245, 158, 11, .08), transparent 26rem),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    button, input, textarea, select {
+      font: inherit;
+      color: inherit;
+    }
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: .7rem;
+      padding: .55rem .75rem;
+      cursor: pointer;
+      transition: .12s ease;
+    }
+    button:hover { border-color: var(--brand); transform: translateY(-1px); }
+    button.primary { background: linear-gradient(135deg, #0284c7, #2563eb); border-color: transparent; }
+    button.cyan { background: rgba(34, 211, 238, .12); border-color: rgba(34, 211, 238, .45); }
+    button.amber { background: rgba(245, 158, 11, .12); border-color: rgba(245, 158, 11, .5); }
+    button.danger { background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .45); }
+    button.ghost { background: transparent; }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: .75rem;
+      background: rgba(15, 23, 42, .78);
+      padding: .7rem .8rem;
+      outline: none;
+    }
+    textarea { min-height: 7.5rem; resize: vertical; line-height: 1.45; }
+    input:focus, textarea:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(56, 189, 248, .12); }
+    .app {
+      display: grid;
+      grid-template-columns: 20rem 1fr;
+      min-height: 100vh;
+    }
+    aside {
+      border-right: 1px solid var(--line);
+      background: rgba(15, 23, 42, .82);
+      backdrop-filter: blur(16px);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .9rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    main { padding: 1.25rem; }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+    }
+    .brand h1 { margin: 0; font-size: 1.05rem; line-height: 1.15; }
+    .brand small, .muted { color: var(--muted); }
+    .tabs, .row, .actions, .filters { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .tabs button { flex: 1; padding: .55rem .4rem; }
+    .tabs button.active { border-color: var(--brand); color: #bae6fd; background: rgba(56, 189, 248, .12); }
+    .filters > * { flex: 1; min-width: 0; }
+    .record-list {
+      overflow: auto;
+      padding-right: .25rem;
+      display: flex;
+      flex-direction: column;
+      gap: .45rem;
+      min-height: 8rem;
+    }
+    .record-card {
+      width: 100%;
+      text-align: left;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: .65rem;
+      align-items: center;
+      background: rgba(31, 41, 55, .72);
+    }
+    .record-card.active { border-color: var(--brand); background: rgba(56, 189, 248, .12); }
+    .dot {
+      width: .7rem;
+      height: .7rem;
+      border-radius: 999px;
+      background: var(--muted);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, .04);
+    }
+    .dot.sfw { background: var(--emerald); }
+    .dot.nsfw { background: var(--rose); }
+    .card-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-sub { color: var(--muted); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: .18rem .48rem;
+      color: var(--muted);
+      font-size: .76rem;
+      white-space: nowrap;
+    }
+    .sidebar-footer {
+      margin-top: auto;
+      border-top: 1px solid var(--line);
+      padding-top: .8rem;
+      display: grid;
+      gap: .55rem;
+    }
+    .meter {
+      height: .55rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+    .meter > span { display: block; height: 100%; background: var(--ok); }
+    .meter.warn > span { background: var(--warn); }
+    .meter.danger > span { background: var(--danger); }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(18rem, .65fr);
+      gap: 1rem;
+      align-items: start;
+    }
+    .panel {
+      background: rgba(17, 24, 39, .82);
+      border: 1px solid var(--line);
+      border-radius: 1.1rem;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 1rem;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .panel-head h2, .panel-head h3 { margin: 0; }
+    .panel-body { padding: 1rem; display: grid; gap: 1rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    .field { display: grid; gap: .4rem; }
+    .field label { color: #cbd5e1; font-weight: 650; font-size: .9rem; }
+    .flags { display: flex; gap: .45rem; flex-wrap: wrap; }
+    .flag {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: .35rem .55rem;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .flag input { width: auto; }
+    .context-section {
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, .5);
+      border-radius: .9rem;
+      padding: .8rem;
+      display: grid;
+      gap: .45rem;
+    }
+    .context-section h4 { margin: 0; }
+    .context-section pre, .copy-block pre, .modal pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+      color: #d1d5db;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: .85rem;
+      line-height: 1.45;
+    }
+    .empty {
+      min-height: 55vh;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, .72);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      z-index: 50;
+    }
+    .modal {
+      width: min(68rem, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      background: #0f172a;
+      border: 1px solid var(--line);
+      border-radius: 1.1rem;
+      box-shadow: var(--shadow);
+    }
+    .modal.small { width: min(44rem, 100%); }
+    .copy-block {
+      border: 1px solid var(--line);
+      border-radius: .9rem;
+      background: rgba(15, 23, 42, .62);
+      overflow: hidden;
+    }
+    .copy-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .5rem;
+      padding: .65rem .75rem;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .03);
+    }
+    .copy-block pre { padding: .75rem; }
+    .notice {
+      border: 1px solid rgba(245, 158, 11, .45);
+      background: rgba(245, 158, 11, .09);
+      color: #fde68a;
+      padding: .75rem;
+      border-radius: .85rem;
+    }
+    .danger-note {
+      border-color: rgba(239, 68, 68, .45);
+      background: rgba(239, 68, 68, .08);
+      color: #fecaca;
+    }
+    .table { display: grid; gap: .65rem; }
+    .platform-row {
+      display: grid;
+      grid-template-columns: 8rem 1fr 1fr 1fr auto;
+      gap: .5rem;
+      align-items: center;
+    }
+    .trash-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: .5rem;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      padding: .65rem;
+    }
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      aside { position: relative; height: auto; }
+      .layout, .grid-2 { grid-template-columns: 1fr; }
+      .platform-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    (() => {
+      const STORAGE_KEY = "character_world_forge_v10_single_blob";
+      const LIMIT_BYTES = 5 * 1024 * 1024;
+      const FLAGS = [
+        "violence",
+        "explicit sexual",
+        "drug use",
+        "self-harm",
+        "graphic language",
+        "dark themes"
+      ];
+      const TYPE_LABELS = {
+        worlds: ["World", "Worlds"],
+        characters: ["Character", "Characters"],
+        voices: ["Voice", "Voices"]
+      };
+      const FIELD_CONFIG = {
+        worlds: [
+          ["readerBrief", "Reader-Facing World Brief"],
+          ["cosmology", "Cosmology / Setting Logic"],
+          ["tone", "Tone / Genre Guardrails"],
+          ["mechanics", "Mechanics / Resource Systems"],
+          ["antagonistLogic", "Antagonist Logic"],
+          ["directorPrompt", "AI Director System Prompt"],
+          ["voicePov", "Voice & POV Conventions"],
+          ["contentNotes", "Content Boundaries / Notes"]
+        ],
+        characters: [
+          ["role", "Description Summary Source / Role"],
+          ["appearance", "Appearance"],
+          ["personality", "Personality"],
+          ["backstory", "Backstory"],
+          ["motivations", "Motivations / Wants"],
+          ["relationships", "Relationships"],
+          ["speechPatterns", "Speech Patterns"],
+          ["deploymentNotes", "Deployment Notes"],
+          ["exampleDialogues", "Example Dialogues"]
+        ],
+        voices: [
+          ["register", "Register"],
+          ["cadence", "Cadence / Rhythm"],
+          ["vocabulary", "Vocabulary / Diction"],
+          ["range", "Range Test Blocks"],
+          ["samplePrompt", "Sample Prompt"],
+          ["refAudio", "Reference Audio URL"],
+          ["recordingNotes", "Recording Notes"]
+        ]
+      };
+      const DEFAULT_LINKS = {
+        "Isekai Zero": { tos: "", promotions: "", readme: "" },
+        "Character.AI": { tos: "", promotions: "", readme: "" },
+        "SillyTavern": { tos: "", promotions: "", readme: "" },
+        "Janitor": { tos: "", promotions: "", readme: "" }
+      };
+      const emptyData = () => ({
+        version: 10,
+        records: { worlds: [], characters: [], voices: [] },
+        platformLinks: JSON.parse(JSON.stringify(DEFAULT_LINKS))
+      });
+      const ui = {
+        type: "worlds",
+        selectedId: null,
+        filter: "all",
+        search: "",
+        sort: "created",
+        modal: null,
+        saveState: "loading",
+        saveMessage: "Loading storage..."
+      };
+      let data = emptyData();
+      let saveTimer = null;
+      const $ = (sel) => document.querySelector(sel);
+      const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[c]);
+      const uid = () => "r_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      const now = () => new Date().toISOString();
+      const bytes = (value) => new Blob([value]).size;
+      const wordList = (value) => String(value || "").trim().split(/\s+/).filter(Boolean);
+      const wordTrim = (value, limit = 30) => wordList(value).slice(0, limit).join(" ");
+      const labelFor = (type, plural = false) => TYPE_LABELS[type][plural ? 1 : 0];
+      const activeRecords = () => data.records[ui.type] || [];
+      const activeRecord = () => activeRecords().find((r) => r.id === ui.selectedId && !r.deletedAt) || null;
+      const allRecords = () => ["worlds", "characters", "voices"].flatMap((type) => data.records[type].map((record) => ({ ...record, _type: type })));
+      const getById = (type, id) => (data.records[type] || []).find((r) => r.id === id && !r.deletedAt) || null;
+      const ratingClass = (rating) => rating === "sfw" ? "sfw" : rating === "nsfw" ? "nsfw" : "";
+      const storage = {
+        async get(key) {
+          if (window.storage && typeof window.storage.get === "function") {
+            const result = await window.storage.get(key);
+            return typeof result === "object" && result && "value" in result ? result.value : result;
+          }
+          return localStorage.getItem(key);
+        },
+        async set(key, value) {
+          if (window.storage && typeof window.storage.set === "function") {
+            return window.storage.set(key, value);
+          }
+          localStorage.setItem(key, value);
+          return true;
+        }
+      };
+      async function load() {
+        try {
+          const raw = await storage.get(STORAGE_KEY);
+          if (raw) data = migrate(JSON.parse(raw));
+          purgeExpiredTrash();
+          ui.saveState = "saved";
+          ui.saveMessage = "Loaded";
+        } catch (error) {
+          console.error(error);
+          ui.saveState = "error";
+          ui.saveMessage = "Storage load failed; using a blank forge.";
+        }
+        ensureSelection();
+        render();
+      }
+      function migrate(incoming) {
+        const base = emptyData();
+        const merged = Object.assign(base, incoming || {});
+        merged.records = Object.assign(base.records, incoming.records || {});
+        merged.platformLinks = Object.assign(base.platformLinks, incoming.platformLinks || {});
+        ["worlds", "characters", "voices"].forEach((type) => {
+          merged.records[type] = (merged.records[type] || []).map((record) => ({
+            flags: [],
+            rating: "sfw",
+            createdAt: now(),
+            updatedAt: now(),
+            ...record
+          }));
+        });
+        return merged;
+      }
+      function purgeExpiredTrash() {
+        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        ["worlds", "characters", "voices"].forEach((type) => {
+          data.records[type] = data.records[type].filter((record) => !record.deletedAt || Date.parse(record.deletedAt) > cutoff);
+        });
+      }
+      function ensureSelection() {
+        const current = activeRecord();
+        if (current) return;
+        const first = visibleRecords()[0] || activeRecords().find((r) => !r.deletedAt);
+        ui.selectedId = first ? first.id : null;
+      }
+      function scheduleSave(renderAfter = false) {
+        ui.saveState = "saving";
+        ui.saveMessage = "Saving...";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          try {
+            const payload = JSON.stringify(data);
+            await storage.set(STORAGE_KEY, payload);
+            ui.saveState = "saved";
+            ui.saveMessage = "Saved " + new Date().toLocaleTimeString();
+          } catch (error) {
+            console.error(error);
+            ui.saveState = "error";
+            ui.saveMessage = "Save failed. Export JSON before closing this tab.";
+          }
+          if (renderAfter) render();
+          else renderStatusOnly();
+        }, 260);
+        renderStatusOnly();
+      }
+      function renderStatusOnly() {
+        const el = $("#saveStatus");
+        if (el) el.textContent = ui.saveMessage;
+        const meter = $("#storageMeter");
+        const text = $("#storageText");
+        if (meter && text) {
+          const percent = storagePercent();
+          meter.className = "meter " + (percent >= 90 ? "danger" : percent >= 70 ? "warn" : "");
+          meter.innerHTML = `<span style="width:${Math.min(percent, 100)}%"></span>`;
+          text.textContent = `${percent.toFixed(1)}% of 5 MB storage`;
+        }
+      }
+      function storagePercent() {
+        return bytes(JSON.stringify(data)) / LIMIT_BYTES * 100;
+      }
+      function createRecord(type) {
+        const record = {
+          id: uid(),
+          name: "Untitled " + labelFor(type),
+          rating: "sfw",
+          flags: [],
+          createdAt: now(),
+          updatedAt: now()
+        };
+        FIELD_CONFIG[type].forEach(([key]) => record[key] = "");
+        if (type === "characters") record.worldId = firstLiveId("worlds");
+        if (type === "voices") record.characterId = firstLiveId("characters");
+        data.records[type].push(record);
+        ui.type = type;
+        ui.selectedId = record.id;
+        scheduleSave(true);
+      }
+      function firstLiveId(type) {
+        const found = (data.records[type] || []).find((record) => !record.deletedAt);
+        return found ? found.id : "";
+      }
+      function visibleRecords() {
+        const term = ui.search.trim().toLowerCase();
+        let records = activeRecords().filter((record) => !record.deletedAt);
+        if (ui.filter !== "all") records = records.filter((record) => record.rating === ui.filter);
+        if (term) {
+          records = records.filter((record) => {
+            const linked = linkedName(record, ui.type).toLowerCase();
+            return [record.name, record.role, record.readerBrief, record.register, linked].some((value) => String(value || "").toLowerCase().includes(term));
+          });
+        }
+        return records.sort((a, b) => {
+          if (ui.sort === "name") return String(a.name || "").localeCompare(String(b.name || ""));
+          if (ui.sort === "updated") return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
+          if (ui.sort === "world" && ui.type === "characters") return linkedName(a, ui.type).localeCompare(linkedName(b, ui.type)) || String(a.name || "").localeCompare(String(b.name || ""));
+          return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+        });
+      }
+      function linkedName(record, type) {
+        if (type === "characters") return getById("worlds", record.worldId)?.name || "";
+        if (type === "voices") return getById("characters", record.characterId)?.name || "";
+        return "";
+      }
+      function render() {
+        ensureSelection();
+        const rec = activeRecord();
+        document.getElementById("app").innerHTML = `
+          <div class="app">
+            ${renderSidebar()}
+            <main>
+              ${rec ? renderEditor(rec) : renderEmpty()}
+            </main>
+          </div>
+          ${renderModal()}
+        `;
+        renderStatusOnly();
+      }
+      function renderSidebar() {
+        const records = visibleRecords();
+        const percent = storagePercent();
+        return `
+          <aside>
+            <div class="brand">
+              <div>
+                <h1>Character / World Forge</h1>
+                <small>Persistent upstream memory layer</small>
+              </div>
+              <span class="badge">v10</span>
+            </div>
+            <div class="tabs">
+              ${["worlds", "characters", "voices"].map((type) => `
+                <button class="${ui.type === type ? "active" : ""}" data-action="tab" data-type="${type}">
+                  ${labelFor(type, true)}
+                </button>
+              `).join("")}
+            </div>
+            <button class="primary" data-action="create" data-type="${ui.type}">+ New ${labelFor(ui.type)}</button>
+            <input placeholder="Search names, links, and summaries..." value="${esc(ui.search)}" data-ui="search" />
+            <div class="filters">
+              <select data-ui="filter">
+                ${["all", "sfw", "nsfw"].map((item) => `<option value="${item}" ${ui.filter === item ? "selected" : ""}>${item.toUpperCase()}</option>`).join("")}
+              </select>
+              <select data-ui="sort">
+                <option value="created" ${ui.sort === "created" ? "selected" : ""}>Created order</option>
+                <option value="updated" ${ui.sort === "updated" ? "selected" : ""}>Recently updated</option>
+                <option value="name" ${ui.sort === "name" ? "selected" : ""}>A-Z</option>
+                <option value="world" ${ui.sort === "world" ? "selected" : ""}>Linked world</option>
+              </select>
+            </div>
+            <div class="record-list">
+              ${records.length ? records.map((record) => `
+                <button class="record-card ${record.id === ui.selectedId ? "active" : ""}" data-action="select" data-id="${record.id}">
+                  <span class="dot ${ratingClass(record.rating)}"></span>
+                  <span>
+                    <strong class="card-title">${esc(record.name || "Untitled")}</strong>
+                    <span class="card-sub">${esc(linkedName(record, ui.type) || record.role || record.readerBrief || record.register || "No linked context")}</span>
+                  </span>
+                  <span class="badge">${esc(record.rating || "unrated")}</span>
+                </button>
+              `).join("") : `<div class="notice">No ${labelFor(ui.type, true).toLowerCase()} match this view.</div>`}
+            </div>
+            <div class="sidebar-footer">
+              <div class="row">
+                <button class="ghost" data-action="modal" data-modal="platforms">Platform Links</button>
+                <button class="ghost" data-action="modal" data-modal="trash">Trash</button>
+              </div>
+              <button class="ghost" data-action="modal" data-modal="import">Import JSON</button>
+              <div class="muted" id="saveStatus">${esc(ui.saveMessage)}</div>
+              <div class="meter ${percent >= 90 ? "danger" : percent >= 70 ? "warn" : ""}" id="storageMeter">
+                <span style="width:${Math.min(percent, 100)}%"></span>
+              </div>
+              <small class="muted" id="storageText">${percent.toFixed(1)}% of 5 MB storage</small>
+            </div>
+          </aside>
+        `;
+      }
+      function renderEmpty() {
+        return `
+          <section class="panel empty">
+            <div>
+              <h2>No ${labelFor(ui.type)} selected</h2>
+              <p>Create a ${labelFor(ui.type).toLowerCase()} to begin building persistent creative specs.</p>
+              <button class="primary" data-action="create" data-type="${ui.type}">Create ${labelFor(ui.type)}</button>
+            </div>
+          </section>
+        `;
+      }
+      function renderEditor(record) {
+        return `
+          <div class="layout">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>${esc(record.name || "Untitled " + labelFor(ui.type))}</h2>
+                  <div class="muted">Created ${new Date(record.createdAt).toLocaleString()} - Updated ${new Date(record.updatedAt).toLocaleString()}</div>
+                </div>
+                <div class="actions">
+                  ${ui.type === "worlds" ? `<button class="amber" data-action="director">Director</button>` : ""}
+                  ${ui.type === "characters" ? `<button class="primary" data-action="deploy">Deploy</button>` : ""}
+                  ${ui.type === "voices" ? `<button class="ghost" data-action="modal" data-modal="audacity">Audacity Tips</button>` : ""}
+                  <button class="cyan" data-action="parse">Parse</button>
+                  <button data-action="export-md">MD</button>
+                  <button data-action="export-json">JSON</button>
+                  <button class="danger" data-action="delete">Trash</button>
+                </div>
+              </div>
+              <div class="panel-body">
+                ${renderMetaFields(record)}
+                ${FIELD_CONFIG[ui.type].map(([key, label]) => `
+                  <div class="field">
+                    <label for="${key}">${esc(label)}</label>
+                    <textarea id="${key}" data-field="${key}" placeholder="${esc(label)}">${esc(record[key] || "")}</textarea>
+                  </div>
+                `).join("")}
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Live linked context</h3>
+                <span class="badge">flows downstream</span>
+              </div>
+              <div class="panel-body">
+                ${renderContext(record)}
+              </div>
+            </section>
+          </div>
+        `;
+      }
+      function renderMetaFields(record) {
+        return `
+          <div class="grid-2">
+            <div class="field">
+              <label>Name</label>
+              <input data-field="name" value="${esc(record.name || "")}" />
+            </div>
+            <div class="field">
+              <label>Rating tag</label>
+              <select data-field="rating" data-rerender="true">
+                <option value="sfw" ${record.rating === "sfw" ? "selected" : ""}>SFW</option>
+                <option value="nsfw" ${record.rating === "nsfw" ? "selected" : ""}>NSFW</option>
+                <option value="unrated" ${record.rating === "unrated" ? "selected" : ""}>Unrated</option>
+              </select>
+            </div>
+          </div>
+          ${ui.type === "characters" ? `
+            <div class="field">
+              <label>Linked World</label>
+              <select data-field="worldId" data-rerender="true">
+                <option value="">No linked world</option>
+                ${data.records.worlds.filter((w) => !w.deletedAt).map((w) => `<option value="${w.id}" ${record.worldId === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}
+              </select>
+            </div>
+          ` : ""}
+          ${ui.type === "voices" ? `
+            <div class="field">
+              <label>Linked Character</label>
+              <select data-field="characterId" data-rerender="true">
+                <option value="">No linked character</option>
+                ${data.records.characters.filter((c) => !c.deletedAt).map((c) => `<option value="${c.id}" ${record.characterId === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}
+              </select>
+            </div>
+          ` : ""}
+          <div class="field">
+            <label>Self-assessed content flags</label>
+            <div class="flags">
+              ${FLAGS.map((flag) => `
+                <label class="flag">
+                  <input type="checkbox" data-flag="${esc(flag)}" ${record.flags.includes(flag) ? "checked" : ""} />
+                  ${esc(flag)}
+                </label>
+              `).join("")}
+            </div>
+            <small class="muted">These are self-assessment labels, not policy predictions. Verify against each target platform before deployment.</small>
+          </div>
+        `;
+      }
+      function renderContext(record) {
+        if (ui.type === "worlds") {
+          const chars = data.records.characters.filter((char) => !char.deletedAt && char.worldId === record.id);
+          return `
+            <div class="context-section">
+              <h4>World-level director layer</h4>
+              <pre>${esc(["Voice & POV: " + record.voicePov, "Mechanics: " + record.mechanics, "Antagonist Logic: " + record.antagonistLogic].filter(Boolean).join("\n\n"))}</pre>
+            </div>
+            <div class="context-section">
+              <h4>Linked character gallery</h4>
+              ${chars.length ? chars.map((char) => `<button data-action="jump" data-type="characters" data-id="${char.id}">${esc(char.name)}</button>`).join("") : `<span class="muted">No linked characters yet.</span>`}
+            </div>
+          `;
+        }
+        if (ui.type === "characters") {
+          const world = getById("worlds", record.worldId);
+          return world ? `
+            <div class="context-section">
+              <h4>${esc(world.name)}</h4>
+              <pre>${esc(`Cosmology:
+${world.cosmology || "(empty)"}
 
+Tone:
+${world.tone || "(empty)"}
+
+Mechanics:
+${world.mechanics || "(empty)"}
+
+Antagonist Logic:
+${world.antagonistLogic || "(empty)"}
+
+Voice & POV:
+${world.voicePov || "(empty)"}`)}</pre>
+            </div>
+          ` : `<div class="notice">Link this character to a World to surface cosmology, tone, mechanics, antagonist logic, and director conventions here.</div>`;
+        }
+        const char = getById("characters", record.characterId);
+        const world = char ? getById("worlds", char.worldId) : null;
+        return char ? `
+          <div class="context-section">
+            <h4>${esc(char.name)}</h4>
+            <pre>${esc(`Speech patterns:
+${char.speechPatterns || "(empty)"}
+
+Personality:
+${char.personality || "(empty)"}
+
+Example dialogues:
+${char.exampleDialogues || "(empty)"}`)}</pre>
+          </div>
+          ${world ? `<div class="context-section"><h4>Upstream world: ${esc(world.name)}</h4><pre>${esc(world.voicePov || world.tone || "(empty)")}</pre></div>` : ""}
+        ` : `<div class="notice">Link this voice to a Character to surface speech patterns and upstream world conventions.</div>`;
+      }
+      function renderModal() {
+        if (!ui.modal) return "";
+        const body = {
+          parse: renderParseModal,
+          deploy: renderDeployModal,
+          director: renderDirectorModal,
+          platforms: renderPlatformModal,
+          audacity: renderAudacityModal,
+          trash: renderTrashModal,
+          import: renderImportModal
+        }[ui.modal]?.() || "";
+        return `<div class="modal-backdrop" data-action="close-modal"><div class="modal" data-stop>${body}</div></div>`;
+      }
+      function renderParseModal() {
+        const record = activeRecord();
+        const schema = parseSchema(ui.type);
+        const prompt = `You are structuring concept notes for a Character/World Forge ${labelFor(ui.type)} record.
+Return ONLY valid JSON. Preserve explicit content as labels and prose when present; do not moralize or sanitize.
+Allowed keys:
+${JSON.stringify(schema, null, 2)}
+
+Paste the user's free-form concept below this line and fill the JSON fields with concise, useful creative spec content.`;
+        return `
+          <div class="panel-head">
+            <h3>Paste & Parse: ${esc(record?.name || labelFor(ui.type))}</h3>
+            <button data-action="close-modal">Close</button>
+          </div>
+          <div class="panel-body">
+            <div class="notice">Copy this prompt into any LLM, paste the returned JSON below, then apply. Incoming text appends to existing fields; flags merge.</div>
+            <div class="copy-block">
+              <div class="copy-head"><strong>Structured parse prompt</strong><button data-action="copy" data-copy="${esc(prompt)}">Copy</button></div>
+              <pre>${esc(prompt)}</pre>
+            </div>
+            <div class="field">
+              <label>JSON response</label>
+              <textarea id="parseInput" style="min-height:14rem" placeholder='{"name":"..."}'></textarea>
+            </div>
+            <button class="cyan" data-action="apply-parse">Append parsed JSON to this record</button>
+          </div>
+        `;
+      }
+      function parseSchema(type) {
+        const base = { name: "string", rating: "sfw | nsfw | unrated", flags: FLAGS };
+        FIELD_CONFIG[type].forEach(([key]) => base[key] = "string");
+        if (type === "characters") base.worldNameHint = "string";
+        if (type === "voices") base.characterNameHint = "string";
+        return base;
+      }
+      function renderDeployModal() {
+        const record = activeRecord();
+        const blocks = deployBlocks(record);
+        const missingUser = blocks.filter((block) => !block.value.includes("{{user}}")).map((block) => block.label);
+        return `
+          <div class="panel-head">
+            <div>
+              <h3>Isekai Zero Deployment</h3>
+              <div class="muted">Six tap-to-copy blocks shaped to the current character creation form.</div>
+            </div>
+            <button data-action="close-modal">Close</button>
+          </div>
+          <div class="panel-body">
+            <div class="notice">Summary word count: ${wordList(blocks[1].value).length}/30. Content flags are self-assessed; verify platform policy before paste.</div>
+            ${missingUser.length ? `<div class="notice danger-note">{{user}} not found in: ${esc(missingUser.join(", "))}. Add markers manually where the target form should bind the player.</div>` : ""}
+            ${blocks.map((block) => `
+              <div class="copy-block">
+                <div class="copy-head"><strong>${esc(block.label)}</strong><button data-action="copy" data-copy="${esc(block.value)}">Copy</button></div>
+                <pre>${esc(block.value)}</pre>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+      function renderDirectorModal() {
+        const prompt = directorPrompt(activeRecord());
+        return `
+          <div class="panel-head">
+            <h3>World Director Prompt</h3>
+            <div class="actions"><button data-action="download-director">Download .md</button><button data-action="close-modal">Close</button></div>
+          </div>
+          <div class="panel-body">
+            <div class="notice">Ordered for bot compliance: voice conventions first, operational rules next, content boundaries last.</div>
+            <div class="copy-block">
+              <div class="copy-head"><strong>Markdown system prompt</strong><button data-action="copy" data-copy="${esc(prompt)}">Copy</button></div>
+              <pre>${esc(prompt)}</pre>
+            </div>
+          </div>
+        `;
+      }
+      function renderPlatformModal() {
+        const names = Object.keys(data.platformLinks);
+        return `
+          <div class="panel-head">
+            <div>
+              <h3>Platform Links</h3>
+              <div class="muted">Manual references for ToS, promotions, and readme pages.</div>
+            </div>
+            <button data-action="close-modal">Close</button>
+          </div>
+          <div class="panel-body">
+            <div class="notice">The forge cannot monitor external sites. You maintain link currency manually.</div>
+            <div class="table">
+              ${names.map((name) => {
+                const links = data.platformLinks[name];
+                return `
+                  <div class="platform-row">
+                    <strong>${esc(name)}</strong>
+                    <input data-platform="${esc(name)}" data-link="tos" placeholder="ToS URL" value="${esc(links.tos)}" />
+                    <input data-platform="${esc(name)}" data-link="promotions" placeholder="Promotions URL" value="${esc(links.promotions)}" />
+                    <input data-platform="${esc(name)}" data-link="readme" placeholder="Readme URL" value="${esc(links.readme)}" />
+                    <span class="actions">${["tos", "promotions", "readme"].map((kind) => links[kind] ? `<button data-action="open-url" data-url="${esc(links[kind])}">${kind}</button>` : "").join("")}</span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+      }
+      function renderAudacityModal() {
+        const tips = `Signal chain: quiet room -> stable mic position -> conservative gain -> raw backup -> edited export.
+
+Setup: record 10 seconds of room tone, test plosives, keep peaks below clipping, and name takes with character + register.
+
+Novice loop: record one range block, listen back, fix one problem, repeat. Do not stack effects until the dry take works.
+
+Adept session: warm-up, range test, core samples, emotional variants, failure-mode checks, export notes back into the linked Voice record.
+
+Effect order: noise reduction lightly, EQ cleanup, compression, de-ess, character coloration, limiter last.
+
+Failure modes: clipped consonants, over-noised room tone, inconsistent distance, fatigue drift, unreadable cadence.
+
+Forge integration: paste reference URLs into refAudio, put direction notes in samplePrompt, and keep reproducible settings in recordingNotes.`;
+        return `
+          <div class="panel-head"><h3>Audacity Quick Tips</h3><button data-action="close-modal">Close</button></div>
+          <div class="panel-body"><pre>${esc(tips)}</pre></div>
+        `;
+      }
+      function renderTrashModal() {
+        const trashed = allRecords().filter((record) => record.deletedAt).sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
+        return `
+          <div class="panel-head">
+            <div>
+              <h3>Soft Delete Trash</h3>
+              <div class="muted">Records are recoverable for 30 days, then purged on load.</div>
+            </div>
+            <button data-action="close-modal">Close</button>
+          </div>
+          <div class="panel-body">
+            ${trashed.length ? trashed.map((record) => `
+              <div class="trash-row">
+                <div><strong>${esc(record.name)}</strong><div class="muted">${labelFor(record._type)} - deleted ${new Date(record.deletedAt).toLocaleString()}</div></div>
+                <button data-action="restore" data-type="${record._type}" data-id="${record.id}">Restore</button>
+                <button class="danger" data-action="purge" data-type="${record._type}" data-id="${record.id}">Purge</button>
+              </div>
+            `).join("") : `<div class="notice">Trash is empty.</div>`}
+          </div>
+        `;
+      }
+      function renderImportModal() {
+        return `
+          <div class="panel-head">
+            <div>
+              <h3>Import JSON</h3>
+              <div class="muted">Paste a previous JSON record export or a full forge backup.</div>
+            </div>
+            <button data-action="close-modal">Close</button>
+          </div>
+          <div class="panel-body">
+            <div class="notice">Imported records receive fresh IDs so backups do not overwrite current work.</div>
+            <textarea id="importInput" style="min-height:16rem" placeholder='{"type":"characters","record":{...}}'></textarea>
+            <button class="primary" data-action="apply-import">Import</button>
+          </div>
+        `;
+      }
+      function markdownRecord(type, record) {
+        const sections = [`# ${record.name || labelFor(type)}`, "", `Type: ${labelFor(type)}`, `Rating: ${record.rating || "unrated"}`, `Flags: ${(record.flags || []).join(", ") || "none"}`, ""];
+        if (type === "characters") {
+          const world = getById("worlds", record.worldId);
+          if (world) sections.push("## Linked World", worldMarkdown(world), "");
+        }
+        if (type === "voices") {
+          const char = getById("characters", record.characterId);
+          const world = char ? getById("worlds", char.worldId) : null;
+          if (world) sections.push("## Linked World", worldMarkdown(world), "");
+          if (char) sections.push("## Linked Character", fieldsMarkdown("characters", char), "");
+        }
+        sections.push("## Record", fieldsMarkdown(type, record));
+        return sections.join("\n");
+      }
+      function worldMarkdown(world) {
+        return fieldsMarkdown("worlds", world);
+      }
+      function fieldsMarkdown(type, record) {
+        return FIELD_CONFIG[type].map(([key, label]) => `### ${label}\n${record[key] || ""}`).join("\n\n");
+      }
+      function resolvedJson(type, record) {
+        const out = { type, record: { ...record } };
+        if (type === "characters") out.linkedWorld = getById("worlds", record.worldId);
+        if (type === "voices") {
+          out.linkedCharacter = getById("characters", record.characterId);
+          out.linkedWorld = out.linkedCharacter ? getById("worlds", out.linkedCharacter.worldId) : null;
+        }
+        return JSON.stringify(out, null, 2);
+      }
+      function directorPrompt(world) {
+        if (!world) return "";
+        return `# ${world.name || "World"} Director System Prompt
+
+## Voice & POV Conventions
+${world.voicePov || "(not specified)"}
+
+## AI Director System Prompt
+${world.directorPrompt || "(not specified)"}
+
+## Mechanics / Resource Systems
+${world.mechanics || "(not specified)"}
+
+## Antagonist Logic
+${world.antagonistLogic || "(not specified)"}
+
+## Reader-Facing World Brief
+${world.readerBrief || "(not specified)"}
+
+## Cosmology / Setting Logic
+${world.cosmology || "(not specified)"}
+
+## Tone / Genre Guardrails
+${world.tone || "(not specified)"}
+
+## Content Boundaries / Notes
+${world.contentNotes || "(not specified)"}
+
+## Self-Assessed Flags
+${(world.flags || []).join(", ") || "none"}`;
+      }
+      function deployBlocks(char) {
+        const world = getById("worlds", char.worldId);
+        const summary = wordTrim(char.role || char.personality || char.backstory || char.name, 30);
+        const full = [
+          ["Role", char.role],
+          ["Appearance", char.appearance],
+          ["Personality", char.personality],
+          ["Backstory", char.backstory],
+          ["Motivations", char.motivations],
+          ["Relationships", char.relationships],
+          ["Speech Patterns", char.speechPatterns],
+          ["Deployment Notes", char.deploymentNotes]
+        ].filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join("\n\n");
+        const tags = [char.rating, ...(char.flags || []), world?.name].filter(Boolean).join(", ");
+        const prompt = [
+          world ? `WORLD: ${world.name}\n${fieldsMarkdown("worlds", world)}` : "WORLD: No linked world.",
+          `CHARACTER: ${char.name}\n${fieldsMarkdown("characters", char)}`,
+          "Instruction: maintain linked world mechanics, antagonist logic, voice/POV conventions, and content boundaries consistently. Verify self-assessed flags against Isekai Zero policy before use."
+        ].join("\n\n");
+        return [
+          { label: "Name", value: char.name || "" },
+          { label: "Description Summary", value: summary },
+          { label: "Full Description", value: full },
+          { label: "Tags", value: tags },
+          { label: "Prompt Description for AI", value: prompt },
+          { label: "Example Dialogues", value: char.exampleDialogues || "" }
+        ];
+      }
+      function download(filename, content, type = "text/plain") {
+        const blob = new Blob([content], { type });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename.replace(/[^\w.-]+/g, "_");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+      }
+      async function copyText(text) {
+        await navigator.clipboard.writeText(text);
+        ui.saveMessage = "Copied to clipboard";
+        renderStatusOnly();
+      }
+      function appendField(record, key, incoming) {
+        const value = String(incoming || "").trim();
+        if (!value) return;
+        record[key] = record[key] ? record[key].trim() + "\n\n" + value : value;
+      }
+      function applyParsedJson() {
+        const record = activeRecord();
+        const input = $("#parseInput")?.value || "";
+        let parsed;
+        try {
+          parsed = JSON.parse(input);
+        } catch (error) {
+          alert("Could not parse JSON: " + error.message);
+          return;
+        }
+        if (parsed.record) parsed = parsed.record;
+        if (parsed.name && (!record.name || record.name.startsWith("Untitled"))) record.name = String(parsed.name);
+        if (["sfw", "nsfw", "unrated"].includes(parsed.rating)) record.rating = parsed.rating;
+        if (Array.isArray(parsed.flags)) record.flags = [...new Set([...(record.flags || []), ...parsed.flags.filter((flag) => FLAGS.includes(flag))])];
+        FIELD_CONFIG[ui.type].forEach(([key]) => appendField(record, key, parsed[key]));
+        record.updatedAt = now();
+        ui.modal = null;
+        scheduleSave(true);
+      }
+      function applyImport() {
+        const raw = $("#importInput")?.value || "";
+        let parsed;
+        try {
+          parsed = JSON.parse(raw);
+        } catch (error) {
+          alert("Could not parse JSON: " + error.message);
+          return;
+        }
+        if (parsed.records) {
+          importBackup(parsed.records);
+        } else {
+          const type = parsed.type || ui.type;
+          const imported = importRecord(type, parsed.record || parsed);
+          if (!imported) return;
+          if (type === "characters" && parsed.linkedWorld) {
+            imported.worldId = importRecord("worlds", parsed.linkedWorld, false).id;
+          }
+          if (type === "voices" && parsed.linkedCharacter) {
+            const importedChar = importRecord("characters", parsed.linkedCharacter, false);
+            imported.characterId = importedChar.id;
+            if (parsed.linkedWorld) importedChar.worldId = importRecord("worlds", parsed.linkedWorld, false).id;
+          }
+        }
+        ui.modal = null;
+        scheduleSave(true);
+      }
+      function importBackup(records) {
+        const idMap = { worlds: {}, characters: {}, voices: {} };
+        const importedByType = { worlds: [], characters: [], voices: [] };
+        ["worlds", "characters", "voices"].forEach((type) => {
+          (records[type] || []).forEach((record) => {
+            const imported = importRecord(type, record, false);
+            idMap[type][record.id] = imported.id;
+            importedByType[type].push(imported);
+          });
+        });
+        importedByType.characters.forEach((record) => {
+          if (idMap.worlds[record.worldId]) record.worldId = idMap.worlds[record.worldId];
+        });
+        importedByType.voices.forEach((record) => {
+          if (idMap.characters[record.characterId]) record.characterId = idMap.characters[record.characterId];
+        });
+      }
+      function importRecord(type, record, selectImported = true) {
+        if (!data.records[type]) return null;
+        const fresh = { ...record, id: uid(), createdAt: now(), updatedAt: now(), deletedAt: null };
+        fresh.name = fresh.name || "Imported " + labelFor(type);
+        fresh.flags = Array.isArray(fresh.flags) ? fresh.flags.filter((flag) => FLAGS.includes(flag)) : [];
+        fresh.rating = ["sfw", "nsfw", "unrated"].includes(fresh.rating) ? fresh.rating : "unrated";
+        FIELD_CONFIG[type].forEach(([key]) => fresh[key] = fresh[key] || "");
+        data.records[type].push(fresh);
+        if (selectImported) {
+          ui.type = type;
+          ui.selectedId = fresh.id;
+        }
+        return fresh;
+      }
+      function handleAction(target) {
+        const action = target.dataset.action;
+        if (!action) return;
+        if (action === "tab") { ui.type = target.dataset.type; ensureSelection(); render(); }
+        if (action === "create") createRecord(target.dataset.type || ui.type);
+        if (action === "select") { ui.selectedId = target.dataset.id; render(); }
+        if (action === "jump") { ui.type = target.dataset.type; ui.selectedId = target.dataset.id; render(); }
+        if (action === "modal") { ui.modal = target.dataset.modal; render(); }
+        if (action === "parse") { ui.modal = "parse"; render(); }
+        if (action === "deploy") { ui.modal = "deploy"; render(); }
+        if (action === "director") { ui.modal = "director"; render(); }
+        if (action === "close-modal") { ui.modal = null; render(); }
+        if (action === "copy") copyText(target.dataset.copy || "");
+        if (action === "apply-parse") applyParsedJson();
+        if (action === "apply-import") applyImport();
+        if (action === "download-director") download((activeRecord()?.name || "world") + "_director.md", directorPrompt(activeRecord()), "text/markdown");
+        if (action === "export-md") download((activeRecord()?.name || "record") + ".md", markdownRecord(ui.type, activeRecord()), "text/markdown");
+        if (action === "export-json") download((activeRecord()?.name || "record") + ".json", resolvedJson(ui.type, activeRecord()), "application/json");
+        if (action === "open-url") window.open(target.dataset.url, "_blank", "noopener,noreferrer");
+        if (action === "delete") {
+          const record = activeRecord();
+          if (!record) return;
+          record.deletedAt = now();
+          record.updatedAt = now();
+          ensureSelection();
+          scheduleSave(true);
+        }
+        if (action === "restore") {
+          const record = (data.records[target.dataset.type] || []).find((r) => r.id === target.dataset.id);
+          if (record) {
+            record.deletedAt = null;
+            record.updatedAt = now();
+            ui.type = target.dataset.type;
+            ui.selectedId = record.id;
+            ui.modal = null;
+            scheduleSave(true);
+          }
+        }
+        if (action === "purge") {
+          if (!confirm("Permanently purge this record?")) return;
+          data.records[target.dataset.type] = (data.records[target.dataset.type] || []).filter((r) => r.id !== target.dataset.id);
+          scheduleSave(true);
+        }
+      }
+      document.addEventListener("click", (event) => {
+        if (event.target.closest("[data-stop]") && !event.target.closest("[data-action]")) return;
+        const actionTarget = event.target.closest("[data-action]");
+        if (!actionTarget) return;
+        event.preventDefault();
+        if (actionTarget.dataset.action === "close-modal" && event.target.closest("[data-stop]") && actionTarget.classList.contains("modal-backdrop")) return;
+        handleAction(actionTarget);
+      });
+      document.addEventListener("input", (event) => {
+        const target = event.target;
+        if (target.dataset.ui === "search") {
+          ui.search = target.value;
+          ensureSelection();
+          render();
+          return;
+        }
+        if (target.dataset.platform) {
+          data.platformLinks[target.dataset.platform][target.dataset.link] = target.value;
+          scheduleSave(false);
+          return;
+        }
+        if (target.dataset.field) {
+          const record = activeRecord();
+          if (!record) return;
+          record[target.dataset.field] = target.value;
+          record.updatedAt = now();
+          scheduleSave(false);
+        }
+      });
+      document.addEventListener("change", (event) => {
+        const target = event.target;
+        if (target.dataset.ui === "filter") {
+          ui.filter = target.value;
+          ensureSelection();
+          render();
+          return;
+        }
+        if (target.dataset.ui === "sort") {
+          ui.sort = target.value;
+          render();
+          return;
+        }
+        if (target.dataset.flag) {
+          const record = activeRecord();
+          if (!record) return;
+          const set = new Set(record.flags || []);
+          if (target.checked) set.add(target.dataset.flag);
+          else set.delete(target.dataset.flag);
+          record.flags = [...set];
+          record.updatedAt = now();
+          scheduleSave(true);
+          return;
+        }
+        if (target.dataset.field) {
+          const record = activeRecord();
+          if (!record) return;
+          record[target.dataset.field] = target.value;
+          record.updatedAt = now();
+          scheduleSave(Boolean(target.dataset.rerender));
+        }
+      });
+      load();
+    })();
+  </script>
+</body>
+</html>
