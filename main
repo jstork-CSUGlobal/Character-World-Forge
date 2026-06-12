@@ -1,1210 +1,1096 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Character / World Forge</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --panel-2: #1f2937;
-      --panel-3: #273449;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --line: #334155;
-      --brand: #38bdf8;
-      --amber: #f59e0b;
-      --cyan: #22d3ee;
-      --emerald: #10b981;
-      --rose: #fb7185;
-      --danger: #ef4444;
-      --ok: #22c55e;
-      --warn: #f97316;
-      --shadow: 0 20px 80px rgba(0, 0, 0, .35);
-      color-scheme: dark;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, .12), transparent 28rem),
-                  radial-gradient(circle at bottom right, rgba(245, 158, 11, .08), transparent 26rem),
-                  var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-    button, input, textarea, select {
-      font: inherit;
-      color: inherit;
-    }
-    button {
-      border: 1px solid var(--line);
-      background: var(--panel-2);
-      border-radius: .7rem;
-      padding: .55rem .75rem;
-      cursor: pointer;
-      transition: .12s ease;
-    }
-    button:hover { border-color: var(--brand); transform: translateY(-1px); }
-    button.primary { background: linear-gradient(135deg, #0284c7, #2563eb); border-color: transparent; }
-    button.cyan { background: rgba(34, 211, 238, .12); border-color: rgba(34, 211, 238, .45); }
-    button.amber { background: rgba(245, 158, 11, .12); border-color: rgba(245, 158, 11, .5); }
-    button.danger { background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .45); }
-    button.ghost { background: transparent; }
-    input, textarea, select {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: .75rem;
-      background: rgba(15, 23, 42, .78);
-      padding: .7rem .8rem;
-      outline: none;
-    }
-    textarea { min-height: 7.5rem; resize: vertical; line-height: 1.45; }
-    input:focus, textarea:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(56, 189, 248, .12); }
-    .app {
-      display: grid;
-      grid-template-columns: 20rem 1fr;
-      min-height: 100vh;
-    }
-    aside {
-      border-right: 1px solid var(--line);
-      background: rgba(15, 23, 42, .82);
-      backdrop-filter: blur(16px);
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: .9rem;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-    }
-    main { padding: 1.25rem; }
-    .brand {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .75rem;
-    }
-    .brand h1 { margin: 0; font-size: 1.05rem; line-height: 1.15; }
-    .brand small, .muted { color: var(--muted); }
-    .tabs, .row, .actions, .filters { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
-    .tabs button { flex: 1; padding: .55rem .4rem; }
-    .tabs button.active { border-color: var(--brand); color: #bae6fd; background: rgba(56, 189, 248, .12); }
-    .filters > * { flex: 1; min-width: 0; }
-    .record-list {
-      overflow: auto;
-      padding-right: .25rem;
-      display: flex;
-      flex-direction: column;
-      gap: .45rem;
-      min-height: 8rem;
-    }
-    .record-card {
-      width: 100%;
-      text-align: left;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: .65rem;
-      align-items: center;
-      background: rgba(31, 41, 55, .72);
-    }
-    .record-card.active { border-color: var(--brand); background: rgba(56, 189, 248, .12); }
-    .dot {
-      width: .7rem;
-      height: .7rem;
-      border-radius: 999px;
-      background: var(--muted);
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, .04);
-    }
-    .dot.sfw { background: var(--emerald); }
-    .dot.nsfw { background: var(--rose); }
-    .card-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .card-sub { color: var(--muted); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .badge {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: .18rem .48rem;
-      color: var(--muted);
-      font-size: .76rem;
-      white-space: nowrap;
-    }
-    .sidebar-footer {
-      margin-top: auto;
-      border-top: 1px solid var(--line);
-      padding-top: .8rem;
-      display: grid;
-      gap: .55rem;
-    }
-    .meter {
-      height: .55rem;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, .08);
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, .08);
-    }
-    .meter > span { display: block; height: 100%; background: var(--ok); }
-    .meter.warn > span { background: var(--warn); }
-    .meter.danger > span { background: var(--danger); }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(18rem, .65fr);
-      gap: 1rem;
-      align-items: start;
-    }
-    .panel {
-      background: rgba(17, 24, 39, .82);
-      border: 1px solid var(--line);
-      border-radius: 1.1rem;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    .panel-head {
-      padding: 1rem;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
-    .panel-head h2, .panel-head h3 { margin: 0; }
-    .panel-body { padding: 1rem; display: grid; gap: 1rem; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
-    .field { display: grid; gap: .4rem; }
-    .field label { color: #cbd5e1; font-weight: 650; font-size: .9rem; }
-    .flags { display: flex; gap: .45rem; flex-wrap: wrap; }
-    .flag {
-      display: flex;
-      align-items: center;
-      gap: .35rem;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: .35rem .55rem;
-      color: var(--muted);
-      cursor: pointer;
-      user-select: none;
-    }
-    .flag input { width: auto; }
-    .context-section {
-      border: 1px solid var(--line);
-      background: rgba(15, 23, 42, .5);
-      border-radius: .9rem;
-      padding: .8rem;
-      display: grid;
-      gap: .45rem;
-    }
-    .context-section h4 { margin: 0; }
-    .context-section pre, .copy-block pre, .modal pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      margin: 0;
-      color: #d1d5db;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: .85rem;
-      line-height: 1.45;
-    }
-    .empty {
-      min-height: 55vh;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      color: var(--muted);
-      padding: 2rem;
-    }
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(2, 6, 23, .72);
-      display: grid;
-      place-items: center;
-      padding: 1rem;
-      z-index: 50;
-    }
-    .modal {
-      width: min(68rem, 100%);
-      max-height: 90vh;
-      overflow: auto;
-      background: #0f172a;
-      border: 1px solid var(--line);
-      border-radius: 1.1rem;
-      box-shadow: var(--shadow);
-    }
-    .modal.small { width: min(44rem, 100%); }
-    .copy-block {
-      border: 1px solid var(--line);
-      border-radius: .9rem;
-      background: rgba(15, 23, 42, .62);
-      overflow: hidden;
-    }
-    .copy-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: .5rem;
-      padding: .65rem .75rem;
-      border-bottom: 1px solid var(--line);
-      background: rgba(255, 255, 255, .03);
-    }
-    .copy-block pre { padding: .75rem; }
-    .notice {
-      border: 1px solid rgba(245, 158, 11, .45);
-      background: rgba(245, 158, 11, .09);
-      color: #fde68a;
-      padding: .75rem;
-      border-radius: .85rem;
-    }
-    .danger-note {
-      border-color: rgba(239, 68, 68, .45);
-      background: rgba(239, 68, 68, .08);
-      color: #fecaca;
-    }
-    .table { display: grid; gap: .65rem; }
-    .platform-row {
-      display: grid;
-      grid-template-columns: 8rem 1fr 1fr 1fr auto;
-      gap: .5rem;
-      align-items: center;
-    }
-    .trash-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: .5rem;
-      align-items: center;
-      border: 1px solid var(--line);
-      border-radius: .85rem;
-      padding: .65rem;
-    }
-    @media (max-width: 980px) {
-      .app { grid-template-columns: 1fr; }
-      aside { position: relative; height: auto; }
-      .layout, .grid-2 { grid-template-columns: 1fr; }
-      .platform-row { grid-template-columns: 1fr; }
-    }
-  </style>
-</head>
-<body>
-  <div id="app"></div>
-  <script>
-    (() => {
-      const STORAGE_KEY = "character_world_forge_v10_single_blob";
-      const LIMIT_BYTES = 5 * 1024 * 1024;
-      const FLAGS = [
-        "violence",
-        "explicit sexual",
-        "drug use",
-        "self-harm",
-        "graphic language",
-        "dark themes"
-      ];
-      const TYPE_LABELS = {
-        worlds: ["World", "Worlds"],
-        characters: ["Character", "Characters"],
-        voices: ["Voice", "Voices"]
-      };
-      const FIELD_CONFIG = {
-        worlds: [
-          ["readerBrief", "Reader-Facing World Brief"],
-          ["cosmology", "Cosmology / Setting Logic"],
-          ["tone", "Tone / Genre Guardrails"],
-          ["mechanics", "Mechanics / Resource Systems"],
-          ["antagonistLogic", "Antagonist Logic"],
-          ["directorPrompt", "AI Director System Prompt"],
-          ["voicePov", "Voice & POV Conventions"],
-          ["contentNotes", "Content Boundaries / Notes"]
-        ],
-        characters: [
-          ["role", "Description Summary Source / Role"],
-          ["appearance", "Appearance"],
-          ["personality", "Personality"],
-          ["backstory", "Backstory"],
-          ["motivations", "Motivations / Wants"],
-          ["relationships", "Relationships"],
-          ["speechPatterns", "Speech Patterns"],
-          ["deploymentNotes", "Deployment Notes"],
-          ["exampleDialogues", "Example Dialogues"]
-        ],
-        voices: [
-          ["register", "Register"],
-          ["cadence", "Cadence / Rhythm"],
-          ["vocabulary", "Vocabulary / Diction"],
-          ["range", "Range Test Blocks"],
-          ["samplePrompt", "Sample Prompt"],
-          ["refAudio", "Reference Audio URL"],
-          ["recordingNotes", "Recording Notes"]
-        ]
-      };
-      const DEFAULT_LINKS = {
-        "Isekai Zero": { tos: "", promotions: "", readme: "" },
-        "Character.AI": { tos: "", promotions: "", readme: "" },
-        "SillyTavern": { tos: "", promotions: "", readme: "" },
-        "Janitor": { tos: "", promotions: "", readme: "" }
-      };
-      const emptyData = () => ({
-        version: 10,
-        records: { worlds: [], characters: [], voices: [] },
-        platformLinks: JSON.parse(JSON.stringify(DEFAULT_LINKS))
-      });
-      const ui = {
-        type: "worlds",
-        selectedId: null,
-        filter: "all",
-        search: "",
-        sort: "created",
-        modal: null,
-        saveState: "loading",
-        saveMessage: "Loading storage..."
-      };
-      let data = emptyData();
-      let saveTimer = null;
-      const $ = (sel) => document.querySelector(sel);
-      const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      })[c]);
-      const uid = () => "r_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
-      const now = () => new Date().toISOString();
-      const bytes = (value) => new Blob([value]).size;
-      const wordList = (value) => String(value || "").trim().split(/\s+/).filter(Boolean);
-      const wordTrim = (value, limit = 30) => wordList(value).slice(0, limit).join(" ");
-      const labelFor = (type, plural = false) => TYPE_LABELS[type][plural ? 1 : 0];
-      const activeRecords = () => data.records[ui.type] || [];
-      const activeRecord = () => activeRecords().find((r) => r.id === ui.selectedId && !r.deletedAt) || null;
-      const allRecords = () => ["worlds", "characters", "voices"].flatMap((type) => data.records[type].map((record) => ({ ...record, _type: type })));
-      const getById = (type, id) => (data.records[type] || []).find((r) => r.id === id && !r.deletedAt) || null;
-      const ratingClass = (rating) => rating === "sfw" ? "sfw" : rating === "nsfw" ? "nsfw" : "";
-      const storage = {
-        async get(key) {
-          if (window.storage && typeof window.storage.get === "function") {
-            const result = await window.storage.get(key);
-            return typeof result === "object" && result && "value" in result ? result.value : result;
-          }
-          return localStorage.getItem(key);
-        },
-        async set(key, value) {
-          if (window.storage && typeof window.storage.set === "function") {
-            return window.storage.set(key, value);
-          }
-          localStorage.setItem(key, value);
-          return true;
-        }
-      };
-      async function load() {
-        try {
-          const raw = await storage.get(STORAGE_KEY);
-          if (raw) data = migrate(JSON.parse(raw));
-          purgeExpiredTrash();
-          ui.saveState = "saved";
-          ui.saveMessage = "Loaded";
-        } catch (error) {
-          console.error(error);
-          ui.saveState = "error";
-          ui.saveMessage = "Storage load failed; using a blank forge.";
-        }
-        ensureSelection();
-        render();
-      }
-      function migrate(incoming) {
-        const base = emptyData();
-        const merged = Object.assign(base, incoming || {});
-        merged.records = Object.assign(base.records, incoming.records || {});
-        merged.platformLinks = Object.assign(base.platformLinks, incoming.platformLinks || {});
-        ["worlds", "characters", "voices"].forEach((type) => {
-          merged.records[type] = (merged.records[type] || []).map((record) => ({
-            flags: [],
-            rating: "sfw",
-            createdAt: now(),
-            updatedAt: now(),
-            ...record
-          }));
-        });
-        return merged;
-      }
-      function purgeExpiredTrash() {
-        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-        ["worlds", "characters", "voices"].forEach((type) => {
-          data.records[type] = data.records[type].filter((record) => !record.deletedAt || Date.parse(record.deletedAt) > cutoff);
-        });
-      }
-      function ensureSelection() {
-        const current = activeRecord();
-        if (current) return;
-        const first = visibleRecords()[0] || activeRecords().find((r) => !r.deletedAt);
-        ui.selectedId = first ? first.id : null;
-      }
-      function scheduleSave(renderAfter = false) {
-        ui.saveState = "saving";
-        ui.saveMessage = "Saving...";
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(async () => {
-          try {
-            const payload = JSON.stringify(data);
-            await storage.set(STORAGE_KEY, payload);
-            ui.saveState = "saved";
-            ui.saveMessage = "Saved " + new Date().toLocaleTimeString();
-          } catch (error) {
-            console.error(error);
-            ui.saveState = "error";
-            ui.saveMessage = "Save failed. Export JSON before closing this tab.";
-          }
-          if (renderAfter) render();
-          else renderStatusOnly();
-        }, 260);
-        renderStatusOnly();
-      }
-      function renderStatusOnly() {
-        const el = $("#saveStatus");
-        if (el) el.textContent = ui.saveMessage;
-        const meter = $("#storageMeter");
-        const text = $("#storageText");
-        if (meter && text) {
-          const percent = storagePercent();
-          meter.className = "meter " + (percent >= 90 ? "danger" : percent >= 70 ? "warn" : "");
-          meter.innerHTML = `<span style="width:${Math.min(percent, 100)}%"></span>`;
-          text.textContent = `${percent.toFixed(1)}% of 5 MB storage`;
-        }
-      }
-      function storagePercent() {
-        return bytes(JSON.stringify(data)) / LIMIT_BYTES * 100;
-      }
-      function createRecord(type) {
-        const record = {
-          id: uid(),
-          name: "Untitled " + labelFor(type),
-          rating: "sfw",
-          flags: [],
-          createdAt: now(),
-          updatedAt: now()
-        };
-        FIELD_CONFIG[type].forEach(([key]) => record[key] = "");
-        if (type === "characters") record.worldId = firstLiveId("worlds");
-        if (type === "voices") record.characterId = firstLiveId("characters");
-        data.records[type].push(record);
-        ui.type = type;
-        ui.selectedId = record.id;
-        scheduleSave(true);
-      }
-      function firstLiveId(type) {
-        const found = (data.records[type] || []).find((record) => !record.deletedAt);
-        return found ? found.id : "";
-      }
-      function visibleRecords() {
-        const term = ui.search.trim().toLowerCase();
-        let records = activeRecords().filter((record) => !record.deletedAt);
-        if (ui.filter !== "all") records = records.filter((record) => record.rating === ui.filter);
-        if (term) {
-          records = records.filter((record) => {
-            const linked = linkedName(record, ui.type).toLowerCase();
-            return [record.name, record.role, record.readerBrief, record.register, linked].some((value) => String(value || "").toLowerCase().includes(term));
-          });
-        }
-        return records.sort((a, b) => {
-          if (ui.sort === "name") return String(a.name || "").localeCompare(String(b.name || ""));
-          if (ui.sort === "updated") return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
-          if (ui.sort === "world" && ui.type === "characters") return linkedName(a, ui.type).localeCompare(linkedName(b, ui.type)) || String(a.name || "").localeCompare(String(b.name || ""));
-          return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
-        });
-      }
-      function linkedName(record, type) {
-        if (type === "characters") return getById("worlds", record.worldId)?.name || "";
-        if (type === "voices") return getById("characters", record.characterId)?.name || "";
-        return "";
-      }
-      function render() {
-        ensureSelection();
-        const rec = activeRecord();
-        document.getElementById("app").innerHTML = `
-          <div class="app">
-            ${renderSidebar()}
-            <main>
-              ${rec ? renderEditor(rec) : renderEmpty()}
-            </main>
-          </div>
-          ${renderModal()}
-        `;
-        renderStatusOnly();
-      }
-      function renderSidebar() {
-        const records = visibleRecords();
-        const percent = storagePercent();
-        return `
-          <aside>
-            <div class="brand">
-              <div>
-                <h1>Character / World Forge</h1>
-                <small>Persistent upstream memory layer</small>
-              </div>
-              <span class="badge">v10</span>
-            </div>
-            <div class="tabs">
-              ${["worlds", "characters", "voices"].map((type) => `
-                <button class="${ui.type === type ? "active" : ""}" data-action="tab" data-type="${type}">
-                  ${labelFor(type, true)}
-                </button>
-              `).join("")}
-            </div>
-            <button class="primary" data-action="create" data-type="${ui.type}">+ New ${labelFor(ui.type)}</button>
-            <input placeholder="Search names, links, and summaries..." value="${esc(ui.search)}" data-ui="search" />
-            <div class="filters">
-              <select data-ui="filter">
-                ${["all", "sfw", "nsfw"].map((item) => `<option value="${item}" ${ui.filter === item ? "selected" : ""}>${item.toUpperCase()}</option>`).join("")}
-              </select>
-              <select data-ui="sort">
-                <option value="created" ${ui.sort === "created" ? "selected" : ""}>Created order</option>
-                <option value="updated" ${ui.sort === "updated" ? "selected" : ""}>Recently updated</option>
-                <option value="name" ${ui.sort === "name" ? "selected" : ""}>A-Z</option>
-                <option value="world" ${ui.sort === "world" ? "selected" : ""}>Linked world</option>
-              </select>
-            </div>
-            <div class="record-list">
-              ${records.length ? records.map((record) => `
-                <button class="record-card ${record.id === ui.selectedId ? "active" : ""}" data-action="select" data-id="${record.id}">
-                  <span class="dot ${ratingClass(record.rating)}"></span>
-                  <span>
-                    <strong class="card-title">${esc(record.name || "Untitled")}</strong>
-                    <span class="card-sub">${esc(linkedName(record, ui.type) || record.role || record.readerBrief || record.register || "No linked context")}</span>
-                  </span>
-                  <span class="badge">${esc(record.rating || "unrated")}</span>
-                </button>
-              `).join("") : `<div class="notice">No ${labelFor(ui.type, true).toLowerCase()} match this view.</div>`}
-            </div>
-            <div class="sidebar-footer">
-              <div class="row">
-                <button class="ghost" data-action="modal" data-modal="platforms">Platform Links</button>
-                <button class="ghost" data-action="modal" data-modal="trash">Trash</button>
-              </div>
-              <button class="ghost" data-action="modal" data-modal="import">Import JSON</button>
-              <div class="muted" id="saveStatus">${esc(ui.saveMessage)}</div>
-              <div class="meter ${percent >= 90 ? "danger" : percent >= 70 ? "warn" : ""}" id="storageMeter">
-                <span style="width:${Math.min(percent, 100)}%"></span>
-              </div>
-              <small class="muted" id="storageText">${percent.toFixed(1)}% of 5 MB storage</small>
-            </div>
-          </aside>
-        `;
-      }
-      function renderEmpty() {
-        return `
-          <section class="panel empty">
-            <div>
-              <h2>No ${labelFor(ui.type)} selected</h2>
-              <p>Create a ${labelFor(ui.type).toLowerCase()} to begin building persistent creative specs.</p>
-              <button class="primary" data-action="create" data-type="${ui.type}">Create ${labelFor(ui.type)}</button>
-            </div>
-          </section>
-        `;
-      }
-      function renderEditor(record) {
-        return `
-          <div class="layout">
-            <section class="panel">
-              <div class="panel-head">
-                <div>
-                  <h2>${esc(record.name || "Untitled " + labelFor(ui.type))}</h2>
-                  <div class="muted">Created ${new Date(record.createdAt).toLocaleString()} - Updated ${new Date(record.updatedAt).toLocaleString()}</div>
-                </div>
-                <div class="actions">
-                  ${ui.type === "worlds" ? `<button class="amber" data-action="director">Director</button>` : ""}
-                  ${ui.type === "characters" ? `<button class="primary" data-action="deploy">Deploy</button>` : ""}
-                  ${ui.type === "voices" ? `<button class="ghost" data-action="modal" data-modal="audacity">Audacity Tips</button>` : ""}
-                  <button class="cyan" data-action="parse">Parse</button>
-                  <button data-action="export-md">MD</button>
-                  <button data-action="export-json">JSON</button>
-                  <button class="danger" data-action="delete">Trash</button>
-                </div>
-              </div>
-              <div class="panel-body">
-                ${renderMetaFields(record)}
-                ${FIELD_CONFIG[ui.type].map(([key, label]) => `
-                  <div class="field">
-                    <label for="${key}">${esc(label)}</label>
-                    <textarea id="${key}" data-field="${key}" placeholder="${esc(label)}">${esc(record[key] || "")}</textarea>
-                  </div>
-                `).join("")}
-              </div>
-            </section>
-            <section class="panel">
-              <div class="panel-head">
-                <h3>Live linked context</h3>
-                <span class="badge">flows downstream</span>
-              </div>
-              <div class="panel-body">
-                ${renderContext(record)}
-              </div>
-            </section>
-          </div>
-        `;
-      }
-      function renderMetaFields(record) {
-        return `
-          <div class="grid-2">
-            <div class="field">
-              <label>Name</label>
-              <input data-field="name" value="${esc(record.name || "")}" />
-            </div>
-            <div class="field">
-              <label>Rating tag</label>
-              <select data-field="rating" data-rerender="true">
-                <option value="sfw" ${record.rating === "sfw" ? "selected" : ""}>SFW</option>
-                <option value="nsfw" ${record.rating === "nsfw" ? "selected" : ""}>NSFW</option>
-                <option value="unrated" ${record.rating === "unrated" ? "selected" : ""}>Unrated</option>
-              </select>
-            </div>
-          </div>
-          ${ui.type === "characters" ? `
-            <div class="field">
-              <label>Linked World</label>
-              <select data-field="worldId" data-rerender="true">
-                <option value="">No linked world</option>
-                ${data.records.worlds.filter((w) => !w.deletedAt).map((w) => `<option value="${w.id}" ${record.worldId === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}
-              </select>
-            </div>
-          ` : ""}
-          ${ui.type === "voices" ? `
-            <div class="field">
-              <label>Linked Character</label>
-              <select data-field="characterId" data-rerender="true">
-                <option value="">No linked character</option>
-                ${data.records.characters.filter((c) => !c.deletedAt).map((c) => `<option value="${c.id}" ${record.characterId === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}
-              </select>
-            </div>
-          ` : ""}
-          <div class="field">
-            <label>Self-assessed content flags</label>
-            <div class="flags">
-              ${FLAGS.map((flag) => `
-                <label class="flag">
-                  <input type="checkbox" data-flag="${esc(flag)}" ${record.flags.includes(flag) ? "checked" : ""} />
-                  ${esc(flag)}
-                </label>
-              `).join("")}
-            </div>
-            <small class="muted">These are self-assessment labels, not policy predictions. Verify against each target platform before deployment.</small>
-          </div>
-        `;
-      }
-      function renderContext(record) {
-        if (ui.type === "worlds") {
-          const chars = data.records.characters.filter((char) => !char.deletedAt && char.worldId === record.id);
-          return `
-            <div class="context-section">
-              <h4>World-level director layer</h4>
-              <pre>${esc(["Voice & POV: " + record.voicePov, "Mechanics: " + record.mechanics, "Antagonist Logic: " + record.antagonistLogic].filter(Boolean).join("\n\n"))}</pre>
-            </div>
-            <div class="context-section">
-              <h4>Linked character gallery</h4>
-              ${chars.length ? chars.map((char) => `<button data-action="jump" data-type="characters" data-id="${char.id}">${esc(char.name)}</button>`).join("") : `<span class="muted">No linked characters yet.</span>`}
-            </div>
-          `;
-        }
-        if (ui.type === "characters") {
-          const world = getById("worlds", record.worldId);
-          return world ? `
-            <div class="context-section">
-              <h4>${esc(world.name)}</h4>
-              <pre>${esc(`Cosmology:
-${world.cosmology || "(empty)"}
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  BookOpen,
+  Check,
+  Copy,
+  Database,
+  Download,
+  Edit3,
+  Eye,
+  FileText,
+  Globe,
+  Link as LinkIcon,
+  Link2,
+  Mic,
+  Plus,
+  RotateCcw,
+  Save,
+  Search,
+  Shield,
+  Trash2,
+  Upload,
+  User,
+  X,
+} from "lucide-react";
 
-Tone:
-${world.tone || "(empty)"}
+declare global {
+  interface Window {
+    storage?: {
+      get: (key: string) => Promise<{ value?: string } | null>;
+      set: (key: string, value: string) => Promise<void>;
+    };
+  }
+}
 
-Mechanics:
-${world.mechanics || "(empty)"}
+type Rating = "sfw" | "nsfw";
+type FilterMode = "all" | Rating;
+type TabKey = "worlds" | "characters" | "voice" | "storylines";
+type SaveState = "idle" | "saving" | "saved" | "error";
 
-Antagonist Logic:
-${world.antagonistLogic || "(empty)"}
+type BaseRecord = {
+  id: string;
+  name: string;
+  rating: Rating;
+  flags: string[];
+  createdAt: string;
+  updatedAt: string;
+};
 
-Voice & POV:
-${world.voicePov || "(empty)"}`)}</pre>
-            </div>
-          ` : `<div class="notice">Link this character to a World to surface cosmology, tone, mechanics, antagonist logic, and director conventions here.</div>`;
+type WorldRecord = BaseRecord & {
+  cosmology: string;
+  factions: string;
+  locations: string;
+  rules: string;
+  tone: string;
+  mechanics: string;
+  antagonistLogic: string;
+  aiDirectorPrompt: string;
+  voiceConventions: string;
+};
+
+type CharacterRecord = BaseRecord & {
+  worldId: string;
+  role: string;
+  appearance: string;
+  personality: string;
+  backstory: string;
+  speech: string;
+  goals: string;
+};
+
+type VoiceRecord = BaseRecord & {
+  characterId: string;
+  register: string;
+  cadence: string;
+  lexicon: string;
+  samplePrompt: string;
+  refAudio: string;
+};
+
+type StorylineRecord = BaseRecord & {
+  worldId: string;
+  characterIds: string[];
+  premise: string;
+  openingScene: string;
+  beats: string;
+  branchingRules: string;
+  continuityState: string;
+  endingConditions: string;
+};
+
+type PlatformLink = {
+  id: string;
+  name: string;
+  tos: string;
+  promos: string;
+  readme: string;
+  notes: string;
+};
+
+type AnyRecord = WorldRecord | CharacterRecord | VoiceRecord | StorylineRecord;
+
+type DeletedRecord = {
+  tombstoneId: string;
+  collection: TabKey;
+  record: AnyRecord;
+  deletedAt: string;
+};
+
+type ForgeState = {
+  forgeVersion: number;
+  worlds: WorldRecord[];
+  chars: CharacterRecord[];
+  voices: VoiceRecord[];
+  storylines: StorylineRecord[];
+  platforms: PlatformLink[];
+  deleted: DeletedRecord[];
+  mode: FilterMode;
+  deployProfile: string;
+};
+
+type DeployBlock = [key: string, label: string, value: string];
+
+const STORAGE_KEY = "forge:state:v10";
+const LEGACY_STORAGE_KEY = "forge:state:v6";
+const FIVE_MB = 5 * 1024 * 1024;
+
+const FLAGS = ["violence", "explicit sexual", "drug use", "self-harm", "graphic language", "dark themes"];
+
+const TABS: Array<{ key: TabKey; label: string; singular: string; icon: typeof Globe }> = [
+  { key: "worlds", label: "Worlds", singular: "world", icon: Globe },
+  { key: "characters", label: "Characters", singular: "character", icon: User },
+  { key: "voice", label: "Voices", singular: "voice", icon: Mic },
+  { key: "storylines", label: "Storylines", singular: "storyline", icon: FileText },
+];
+
+const FIELDS: Record<TabKey, Array<[string, string]>> = {
+  worlds: [
+    ["cosmology", "Cosmology / Metaphysics"],
+    ["factions", "Factions"],
+    ["locations", "Locations"],
+    ["rules", "Rules / Logic"],
+    ["tone", "Tone"],
+    ["mechanics", "Mechanics / Resource Systems"],
+    ["antagonistLogic", "Antagonist Logic"],
+    ["aiDirectorPrompt", "AI Director System Prompt"],
+    ["voiceConventions", "Voice & POV Conventions"],
+  ],
+  characters: [
+    ["role", "Role / Archetype"],
+    ["appearance", "Appearance"],
+    ["personality", "Personality"],
+    ["backstory", "Backstory"],
+    ["speech", "Speech Patterns"],
+    ["goals", "Goals / Drives"],
+  ],
+  voice: [
+    ["register", "Register"],
+    ["cadence", "Cadence / Rhythm"],
+    ["lexicon", "Lexicon / Signature Terms"],
+    ["samplePrompt", "Sample Generation Prompt"],
+    ["refAudio", "Reference Audio URL"],
+  ],
+  storylines: [
+    ["premise", "Premise"],
+    ["openingScene", "Opening Scene"],
+    ["beats", "Major Beats"],
+    ["branchingRules", "Branching / Choice Rules"],
+    ["continuityState", "Current Continuity State"],
+    ["endingConditions", "Ending Conditions"],
+  ],
+};
+
+const TIPS = [
+  { h: "Signal Chain First", b: "Soft room. Mic 4-6in off-axis. Pop filter. Peaks -12 to -6 dB, never red." },
+  { h: "One-Time Setup", b: "48000 Hz, 32-bit float. Software Playthrough OFF. Show Clipping ON. Meter range -60 dB." },
+  { h: "Novice Loop", b: "Record 10s silence first for room tone. Clap-restart flubs. Normalize to -3 dB after light cleanup." },
+  { h: "Adept Session", b: "Track 1: pristine room tone. Track 2: slate. Tracks 3+: takes on separate tracks. Keep 2s pre/post-roll." },
+  { h: "Effect Chain", b: "1) HPF 80Hz 2) Noise Reduction 3) Gentle EQ 4) Compressor 5) Limiter -1dB 6) Normalize -3dB." },
+  { h: "Failure Modes", b: "Sibilance, plosives, boxy rooms, thin over-EQ, and mouth noise. Fix the source before stacking effects." },
+  { h: "Range Blocks", b: "Neutral, restrained intensity, sardonic, clinical, collapse. Label takes by register." },
+];
+
+const DEPLOY_PROFILES = [
+  { key: "isekai-zero", name: "Isekai Zero", note: "Six copy blocks shaped for Isekai Zero character creation and Advanced Mode." },
+  { key: "character-ai", name: "Character.AI", note: "Condensed persona, greeting, definition, and example dialogue blocks." },
+  { key: "sillytavern", name: "SillyTavern", note: "Persona-card style blocks: description, personality, scenario, first message, examples." },
+  { key: "generic", name: "Generic Bot", note: "Platform-agnostic system/context bundle for any stateless bot session." },
+];
+
+const nowIso = () => new Date().toISOString();
+const uid = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const stripMd = (s: string) => s.replace(/[#*_`>~[\]()]/g, "").replace(/\s+/g, " ").trim();
+const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+const compactWords = (s: string, max = 30) => stripMd(s).split(/\s+/).filter(Boolean).slice(0, max).join(" ");
+
+const baseRecord = (name: string): BaseRecord => ({
+  id: uid(),
+  name,
+  rating: "sfw",
+  flags: [],
+  createdAt: nowIso(),
+  updatedAt: nowIso(),
+});
+
+const emptyWorld = (): WorldRecord => ({
+  ...baseRecord("Untitled World"),
+  cosmology: "",
+  factions: "",
+  locations: "",
+  rules: "",
+  tone: "",
+  mechanics: "",
+  antagonistLogic: "",
+  aiDirectorPrompt: "",
+  voiceConventions: "",
+});
+
+const emptyChar = (): CharacterRecord => ({
+  ...baseRecord("Untitled Character"),
+  worldId: "",
+  role: "",
+  appearance: "",
+  personality: "",
+  backstory: "",
+  speech: "",
+  goals: "",
+});
+
+const emptyVoice = (): VoiceRecord => ({
+  ...baseRecord("Untitled Voice"),
+  characterId: "",
+  register: "",
+  cadence: "",
+  lexicon: "",
+  samplePrompt: "",
+  refAudio: "",
+});
+
+const emptyStoryline = (): StorylineRecord => ({
+  ...baseRecord("Untitled Storyline"),
+  worldId: "",
+  characterIds: [],
+  premise: "",
+  openingScene: "",
+  beats: "",
+  branchingRules: "",
+  continuityState: "",
+  endingConditions: "",
+});
+
+const defaultPlatforms = (): PlatformLink[] => [
+  { id: uid(), name: "Isekai Zero", tos: "", promos: "", readme: "", notes: "" },
+  { id: uid(), name: "Character.AI", tos: "", promos: "", readme: "", notes: "" },
+  { id: uid(), name: "SillyTavern", tos: "", promos: "", readme: "", notes: "" },
+];
+
+const storageRead = async (key: string) => {
+  if (typeof window === "undefined") return null;
+  if (window.storage?.get) {
+    const result = await window.storage.get(key);
+    return result?.value || null;
+  }
+  return window.localStorage.getItem(key);
+};
+
+const storageWrite = async (key: string, value: string) => {
+  if (typeof window === "undefined") return;
+  if (window.storage?.set) {
+    await window.storage.set(key, value);
+    return;
+  }
+  window.localStorage.setItem(key, value);
+};
+
+const estimateBytes = (payload: string) => {
+  try {
+    return new Blob([payload]).size;
+  } catch {
+    return payload.length;
+  }
+};
+
+const normalizeRecord = <T extends AnyRecord>(record: Partial<T>, fallback: T): T => ({
+  ...fallback,
+  ...record,
+  rating: record.rating === "nsfw" ? "nsfw" : "sfw",
+  flags: Array.isArray(record.flags) ? record.flags : [],
+  createdAt: record.createdAt || nowIso(),
+  updatedAt: record.updatedAt || nowIso(),
+});
+
+const normalizeWorld = (record: Partial<WorldRecord>) => normalizeRecord(record, emptyWorld());
+const normalizeChar = (record: Partial<CharacterRecord>) => normalizeRecord(record, emptyChar());
+const normalizeVoice = (record: Partial<VoiceRecord>) => normalizeRecord(record, emptyVoice());
+const normalizeStoryline = (record: Partial<StorylineRecord>) => normalizeRecord(record, emptyStoryline());
+
+const normalizePlatform = (platform: Partial<PlatformLink>): PlatformLink => ({
+  id: platform.id || uid(),
+  name: platform.name || "New Platform",
+  tos: platform.tos || "",
+  promos: platform.promos || "",
+  readme: platform.readme || "",
+  notes: platform.notes || "",
+});
+
+const summarizeCharacter = (character: CharacterRecord) => {
+  const direct = [character.role, character.personality].filter(Boolean).join(" ");
+  const firstSentence = stripMd(direct).split(/(?<=[.!?])\s+/)[0] || direct;
+  return compactWords(firstSentence || `${character.name} is a character awaiting definition.`, 30);
+};
+
+export default function Forge() {
+  const [tab, setTab] = useState<TabKey>("worlds");
+  const [worlds, setWorlds] = useState<WorldRecord[]>([]);
+  const [chars, setChars] = useState<CharacterRecord[]>([]);
+  const [voices, setVoices] = useState<VoiceRecord[]>([]);
+  const [storylines, setStorylines] = useState<StorylineRecord[]>([]);
+  const [platforms, setPlatforms] = useState<PlatformLink[]>(defaultPlatforms);
+  const [deleted, setDeleted] = useState<DeletedRecord[]>([]);
+  const [sel, setSel] = useState<Record<TabKey, string | null>>({ worlds: null, characters: null, voice: null, storylines: null });
+  const [mode, setMode] = useState<FilterMode>("all");
+  const [query, setQuery] = useState("");
+  const [deployProfile, setDeployProfile] = useState("isekai-zero");
+  const [deployView, setDeployView] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+  const [showPlatforms, setShowPlatforms] = useState(false);
+  const [showParse, setShowParse] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
+  const [parseInput, setParseInput] = useState("");
+  const [parseOutput, setParseOutput] = useState("");
+  const [parseMsg, setParseMsg] = useState("");
+  const [parseDraft, setParseDraft] = useState<Record<string, string> | null>(null);
+  const [parseSelected, setParseSelected] = useState<Record<string, boolean>>({});
+  const [parseApplyMode, setParseApplyMode] = useState<"append" | "replace">("append");
+  const [copied, setCopied] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [lastSaved, setLastSaved] = useState("");
+  const [storageBytes, setStorageBytes] = useState(0);
+  const importRef = useRef<HTMLInputElement | null>(null);
+
+  const collections: Record<TabKey, AnyRecord[]> = useMemo(
+    () => ({ worlds, characters: chars, voice: voices, storylines }),
+    [worlds, chars, voices, storylines],
+  );
+
+  const statePayload: ForgeState = useMemo(
+    () => ({ forgeVersion: 10, worlds, chars, voices, storylines, platforms, deleted, mode, deployProfile }),
+    [worlds, chars, voices, storylines, platforms, deleted, mode, deployProfile],
+  );
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = (await storageRead(STORAGE_KEY)) || (await storageRead(LEGACY_STORAGE_KEY));
+        if (raw) {
+          const state = JSON.parse(raw);
+          setWorlds((state.worlds || []).map(normalizeWorld));
+          setChars((state.chars || []).map(normalizeChar));
+          setVoices((state.voices || []).map(normalizeVoice));
+          setStorylines((state.storylines || []).map(normalizeStoryline));
+          setPlatforms((state.platforms?.length ? state.platforms : defaultPlatforms()).map(normalizePlatform));
+          setDeleted(state.deleted || []);
+          setMode(state.mode || "all");
+          setDeployProfile(state.deployProfile || "isekai-zero");
         }
-        const char = getById("characters", record.characterId);
-        const world = char ? getById("worlds", char.worldId) : null;
-        return char ? `
-          <div class="context-section">
-            <h4>${esc(char.name)}</h4>
-            <pre>${esc(`Speech patterns:
-${char.speechPatterns || "(empty)"}
-
-Personality:
-${char.personality || "(empty)"}
-
-Example dialogues:
-${char.exampleDialogues || "(empty)"}`)}</pre>
-          </div>
-          ${world ? `<div class="context-section"><h4>Upstream world: ${esc(world.name)}</h4><pre>${esc(world.voicePov || world.tone || "(empty)")}</pre></div>` : ""}
-        ` : `<div class="notice">Link this voice to a Character to surface speech patterns and upstream world conventions.</div>`;
+      } catch (error) {
+        console.warn("Forge load failed", error);
       }
-      function renderModal() {
-        if (!ui.modal) return "";
-        const body = {
-          parse: renderParseModal,
-          deploy: renderDeployModal,
-          director: renderDirectorModal,
-          platforms: renderPlatformModal,
-          audacity: renderAudacityModal,
-          trash: renderTrashModal,
-          import: renderImportModal
-        }[ui.modal]?.() || "";
-        return `<div class="modal-backdrop" data-action="close-modal"><div class="modal" data-stop>${body}</div></div>`;
-      }
-      function renderParseModal() {
-        const record = activeRecord();
-        const schema = parseSchema(ui.type);
-        const prompt = `You are structuring concept notes for a Character/World Forge ${labelFor(ui.type)} record.
-Return ONLY valid JSON. Preserve explicit content as labels and prose when present; do not moralize or sanitize.
-Allowed keys:
-${JSON.stringify(schema, null, 2)}
-
-Paste the user's free-form concept below this line and fill the JSON fields with concise, useful creative spec content.`;
-        return `
-          <div class="panel-head">
-            <h3>Paste & Parse: ${esc(record?.name || labelFor(ui.type))}</h3>
-            <button data-action="close-modal">Close</button>
-          </div>
-          <div class="panel-body">
-            <div class="notice">Copy this prompt into any LLM, paste the returned JSON below, then apply. Incoming text appends to existing fields; flags merge.</div>
-            <div class="copy-block">
-              <div class="copy-head"><strong>Structured parse prompt</strong><button data-action="copy" data-copy="${esc(prompt)}">Copy</button></div>
-              <pre>${esc(prompt)}</pre>
-            </div>
-            <div class="field">
-              <label>JSON response</label>
-              <textarea id="parseInput" style="min-height:14rem" placeholder='{"name":"..."}'></textarea>
-            </div>
-            <button class="cyan" data-action="apply-parse">Append parsed JSON to this record</button>
-          </div>
-        `;
-      }
-      function parseSchema(type) {
-        const base = { name: "string", rating: "sfw | nsfw | unrated", flags: FLAGS };
-        FIELD_CONFIG[type].forEach(([key]) => base[key] = "string");
-        if (type === "characters") base.worldNameHint = "string";
-        if (type === "voices") base.characterNameHint = "string";
-        return base;
-      }
-      function renderDeployModal() {
-        const record = activeRecord();
-        const blocks = deployBlocks(record);
-        const missingUser = blocks.filter((block) => !block.value.includes("{{user}}")).map((block) => block.label);
-        return `
-          <div class="panel-head">
-            <div>
-              <h3>Isekai Zero Deployment</h3>
-              <div class="muted">Six tap-to-copy blocks shaped to the current character creation form.</div>
-            </div>
-            <button data-action="close-modal">Close</button>
-          </div>
-          <div class="panel-body">
-            <div class="notice">Summary word count: ${wordList(blocks[1].value).length}/30. Content flags are self-assessed; verify platform policy before paste.</div>
-            ${missingUser.length ? `<div class="notice danger-note">{{user}} not found in: ${esc(missingUser.join(", "))}. Add markers manually where the target form should bind the player.</div>` : ""}
-            ${blocks.map((block) => `
-              <div class="copy-block">
-                <div class="copy-head"><strong>${esc(block.label)}</strong><button data-action="copy" data-copy="${esc(block.value)}">Copy</button></div>
-                <pre>${esc(block.value)}</pre>
-              </div>
-            `).join("")}
-          </div>
-        `;
-      }
-      function renderDirectorModal() {
-        const prompt = directorPrompt(activeRecord());
-        return `
-          <div class="panel-head">
-            <h3>World Director Prompt</h3>
-            <div class="actions"><button data-action="download-director">Download .md</button><button data-action="close-modal">Close</button></div>
-          </div>
-          <div class="panel-body">
-            <div class="notice">Ordered for bot compliance: voice conventions first, operational rules next, content boundaries last.</div>
-            <div class="copy-block">
-              <div class="copy-head"><strong>Markdown system prompt</strong><button data-action="copy" data-copy="${esc(prompt)}">Copy</button></div>
-              <pre>${esc(prompt)}</pre>
-            </div>
-          </div>
-        `;
-      }
-      function renderPlatformModal() {
-        const names = Object.keys(data.platformLinks);
-        return `
-          <div class="panel-head">
-            <div>
-              <h3>Platform Links</h3>
-              <div class="muted">Manual references for ToS, promotions, and readme pages.</div>
-            </div>
-            <button data-action="close-modal">Close</button>
-          </div>
-          <div class="panel-body">
-            <div class="notice">The forge cannot monitor external sites. You maintain link currency manually.</div>
-            <div class="table">
-              ${names.map((name) => {
-                const links = data.platformLinks[name];
-                return `
-                  <div class="platform-row">
-                    <strong>${esc(name)}</strong>
-                    <input data-platform="${esc(name)}" data-link="tos" placeholder="ToS URL" value="${esc(links.tos)}" />
-                    <input data-platform="${esc(name)}" data-link="promotions" placeholder="Promotions URL" value="${esc(links.promotions)}" />
-                    <input data-platform="${esc(name)}" data-link="readme" placeholder="Readme URL" value="${esc(links.readme)}" />
-                    <span class="actions">${["tos", "promotions", "readme"].map((kind) => links[kind] ? `<button data-action="open-url" data-url="${esc(links[kind])}">${kind}</button>` : "").join("")}</span>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          </div>
-        `;
-      }
-      function renderAudacityModal() {
-        const tips = `Signal chain: quiet room -> stable mic position -> conservative gain -> raw backup -> edited export.
-
-Setup: record 10 seconds of room tone, test plosives, keep peaks below clipping, and name takes with character + register.
-
-Novice loop: record one range block, listen back, fix one problem, repeat. Do not stack effects until the dry take works.
-
-Adept session: warm-up, range test, core samples, emotional variants, failure-mode checks, export notes back into the linked Voice record.
-
-Effect order: noise reduction lightly, EQ cleanup, compression, de-ess, character coloration, limiter last.
-
-Failure modes: clipped consonants, over-noised room tone, inconsistent distance, fatigue drift, unreadable cadence.
-
-Forge integration: paste reference URLs into refAudio, put direction notes in samplePrompt, and keep reproducible settings in recordingNotes.`;
-        return `
-          <div class="panel-head"><h3>Audacity Quick Tips</h3><button data-action="close-modal">Close</button></div>
-          <div class="panel-body"><pre>${esc(tips)}</pre></div>
-        `;
-      }
-      function renderTrashModal() {
-        const trashed = allRecords().filter((record) => record.deletedAt).sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
-        return `
-          <div class="panel-head">
-            <div>
-              <h3>Soft Delete Trash</h3>
-              <div class="muted">Records are recoverable for 30 days, then purged on load.</div>
-            </div>
-            <button data-action="close-modal">Close</button>
-          </div>
-          <div class="panel-body">
-            ${trashed.length ? trashed.map((record) => `
-              <div class="trash-row">
-                <div><strong>${esc(record.name)}</strong><div class="muted">${labelFor(record._type)} - deleted ${new Date(record.deletedAt).toLocaleString()}</div></div>
-                <button data-action="restore" data-type="${record._type}" data-id="${record.id}">Restore</button>
-                <button class="danger" data-action="purge" data-type="${record._type}" data-id="${record.id}">Purge</button>
-              </div>
-            `).join("") : `<div class="notice">Trash is empty.</div>`}
-          </div>
-        `;
-      }
-      function renderImportModal() {
-        return `
-          <div class="panel-head">
-            <div>
-              <h3>Import JSON</h3>
-              <div class="muted">Paste a previous JSON record export or a full forge backup.</div>
-            </div>
-            <button data-action="close-modal">Close</button>
-          </div>
-          <div class="panel-body">
-            <div class="notice">Imported records receive fresh IDs so backups do not overwrite current work.</div>
-            <textarea id="importInput" style="min-height:16rem" placeholder='{"type":"characters","record":{...}}'></textarea>
-            <button class="primary" data-action="apply-import">Import</button>
-          </div>
-        `;
-      }
-      function markdownRecord(type, record) {
-        const sections = [`# ${record.name || labelFor(type)}`, "", `Type: ${labelFor(type)}`, `Rating: ${record.rating || "unrated"}`, `Flags: ${(record.flags || []).join(", ") || "none"}`, ""];
-        if (type === "characters") {
-          const world = getById("worlds", record.worldId);
-          if (world) sections.push("## Linked World", worldMarkdown(world), "");
-        }
-        if (type === "voices") {
-          const char = getById("characters", record.characterId);
-          const world = char ? getById("worlds", char.worldId) : null;
-          if (world) sections.push("## Linked World", worldMarkdown(world), "");
-          if (char) sections.push("## Linked Character", fieldsMarkdown("characters", char), "");
-        }
-        sections.push("## Record", fieldsMarkdown(type, record));
-        return sections.join("\n");
-      }
-      function worldMarkdown(world) {
-        return fieldsMarkdown("worlds", world);
-      }
-      function fieldsMarkdown(type, record) {
-        return FIELD_CONFIG[type].map(([key, label]) => `### ${label}\n${record[key] || ""}`).join("\n\n");
-      }
-      function resolvedJson(type, record) {
-        const out = { type, record: { ...record } };
-        if (type === "characters") out.linkedWorld = getById("worlds", record.worldId);
-        if (type === "voices") {
-          out.linkedCharacter = getById("characters", record.characterId);
-          out.linkedWorld = out.linkedCharacter ? getById("worlds", out.linkedCharacter.worldId) : null;
-        }
-        return JSON.stringify(out, null, 2);
-      }
-      function directorPrompt(world) {
-        if (!world) return "";
-        return `# ${world.name || "World"} Director System Prompt
-
-## Voice & POV Conventions
-${world.voicePov || "(not specified)"}
-
-## AI Director System Prompt
-${world.directorPrompt || "(not specified)"}
-
-## Mechanics / Resource Systems
-${world.mechanics || "(not specified)"}
-
-## Antagonist Logic
-${world.antagonistLogic || "(not specified)"}
-
-## Reader-Facing World Brief
-${world.readerBrief || "(not specified)"}
-
-## Cosmology / Setting Logic
-${world.cosmology || "(not specified)"}
-
-## Tone / Genre Guardrails
-${world.tone || "(not specified)"}
-
-## Content Boundaries / Notes
-${world.contentNotes || "(not specified)"}
-
-## Self-Assessed Flags
-${(world.flags || []).join(", ") || "none"}`;
-      }
-      function deployBlocks(char) {
-        const world = getById("worlds", char.worldId);
-        const summary = wordTrim(char.role || char.personality || char.backstory || char.name, 30);
-        const full = [
-          ["Role", char.role],
-          ["Appearance", char.appearance],
-          ["Personality", char.personality],
-          ["Backstory", char.backstory],
-          ["Motivations", char.motivations],
-          ["Relationships", char.relationships],
-          ["Speech Patterns", char.speechPatterns],
-          ["Deployment Notes", char.deploymentNotes]
-        ].filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join("\n\n");
-        const tags = [char.rating, ...(char.flags || []), world?.name].filter(Boolean).join(", ");
-        const prompt = [
-          world ? `WORLD: ${world.name}\n${fieldsMarkdown("worlds", world)}` : "WORLD: No linked world.",
-          `CHARACTER: ${char.name}\n${fieldsMarkdown("characters", char)}`,
-          "Instruction: maintain linked world mechanics, antagonist logic, voice/POV conventions, and content boundaries consistently. Verify self-assessed flags against Isekai Zero policy before use."
-        ].join("\n\n");
-        return [
-          { label: "Name", value: char.name || "" },
-          { label: "Description Summary", value: summary },
-          { label: "Full Description", value: full },
-          { label: "Tags", value: tags },
-          { label: "Prompt Description for AI", value: prompt },
-          { label: "Example Dialogues", value: char.exampleDialogues || "" }
-        ];
-      }
-      function download(filename, content, type = "text/plain") {
-        const blob = new Blob([content], { type });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = filename.replace(/[^\w.-]+/g, "_");
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(a.href);
-      }
-      async function copyText(text) {
-        await navigator.clipboard.writeText(text);
-        ui.saveMessage = "Copied to clipboard";
-        renderStatusOnly();
-      }
-      function appendField(record, key, incoming) {
-        const value = String(incoming || "").trim();
-        if (!value) return;
-        record[key] = record[key] ? record[key].trim() + "\n\n" + value : value;
-      }
-      function applyParsedJson() {
-        const record = activeRecord();
-        const input = $("#parseInput")?.value || "";
-        let parsed;
-        try {
-          parsed = JSON.parse(input);
-        } catch (error) {
-          alert("Could not parse JSON: " + error.message);
-          return;
-        }
-        if (parsed.record) parsed = parsed.record;
-        if (parsed.name && (!record.name || record.name.startsWith("Untitled"))) record.name = String(parsed.name);
-        if (["sfw", "nsfw", "unrated"].includes(parsed.rating)) record.rating = parsed.rating;
-        if (Array.isArray(parsed.flags)) record.flags = [...new Set([...(record.flags || []), ...parsed.flags.filter((flag) => FLAGS.includes(flag))])];
-        FIELD_CONFIG[ui.type].forEach(([key]) => appendField(record, key, parsed[key]));
-        record.updatedAt = now();
-        ui.modal = null;
-        scheduleSave(true);
-      }
-      function applyImport() {
-        const raw = $("#importInput")?.value || "";
-        let parsed;
-        try {
-          parsed = JSON.parse(raw);
-        } catch (error) {
-          alert("Could not parse JSON: " + error.message);
-          return;
-        }
-        if (parsed.records) {
-          importBackup(parsed.records);
-        } else {
-          const type = parsed.type || ui.type;
-          const imported = importRecord(type, parsed.record || parsed);
-          if (!imported) return;
-          if (type === "characters" && parsed.linkedWorld) {
-            imported.worldId = importRecord("worlds", parsed.linkedWorld, false).id;
-          }
-          if (type === "voices" && parsed.linkedCharacter) {
-            const importedChar = importRecord("characters", parsed.linkedCharacter, false);
-            imported.characterId = importedChar.id;
-            if (parsed.linkedWorld) importedChar.worldId = importRecord("worlds", parsed.linkedWorld, false).id;
-          }
-        }
-        ui.modal = null;
-        scheduleSave(true);
-      }
-      function importBackup(records) {
-        const idMap = { worlds: {}, characters: {}, voices: {} };
-        const importedByType = { worlds: [], characters: [], voices: [] };
-        ["worlds", "characters", "voices"].forEach((type) => {
-          (records[type] || []).forEach((record) => {
-            const imported = importRecord(type, record, false);
-            idMap[type][record.id] = imported.id;
-            importedByType[type].push(imported);
-          });
-        });
-        importedByType.characters.forEach((record) => {
-          if (idMap.worlds[record.worldId]) record.worldId = idMap.worlds[record.worldId];
-        });
-        importedByType.voices.forEach((record) => {
-          if (idMap.characters[record.characterId]) record.characterId = idMap.characters[record.characterId];
-        });
-      }
-      function importRecord(type, record, selectImported = true) {
-        if (!data.records[type]) return null;
-        const fresh = { ...record, id: uid(), createdAt: now(), updatedAt: now(), deletedAt: null };
-        fresh.name = fresh.name || "Imported " + labelFor(type);
-        fresh.flags = Array.isArray(fresh.flags) ? fresh.flags.filter((flag) => FLAGS.includes(flag)) : [];
-        fresh.rating = ["sfw", "nsfw", "unrated"].includes(fresh.rating) ? fresh.rating : "unrated";
-        FIELD_CONFIG[type].forEach(([key]) => fresh[key] = fresh[key] || "");
-        data.records[type].push(fresh);
-        if (selectImported) {
-          ui.type = type;
-          ui.selectedId = fresh.id;
-        }
-        return fresh;
-      }
-      function handleAction(target) {
-        const action = target.dataset.action;
-        if (!action) return;
-        if (action === "tab") { ui.type = target.dataset.type; ensureSelection(); render(); }
-        if (action === "create") createRecord(target.dataset.type || ui.type);
-        if (action === "select") { ui.selectedId = target.dataset.id; render(); }
-        if (action === "jump") { ui.type = target.dataset.type; ui.selectedId = target.dataset.id; render(); }
-        if (action === "modal") { ui.modal = target.dataset.modal; render(); }
-        if (action === "parse") { ui.modal = "parse"; render(); }
-        if (action === "deploy") { ui.modal = "deploy"; render(); }
-        if (action === "director") { ui.modal = "director"; render(); }
-        if (action === "close-modal") { ui.modal = null; render(); }
-        if (action === "copy") copyText(target.dataset.copy || "");
-        if (action === "apply-parse") applyParsedJson();
-        if (action === "apply-import") applyImport();
-        if (action === "download-director") download((activeRecord()?.name || "world") + "_director.md", directorPrompt(activeRecord()), "text/markdown");
-        if (action === "export-md") download((activeRecord()?.name || "record") + ".md", markdownRecord(ui.type, activeRecord()), "text/markdown");
-        if (action === "export-json") download((activeRecord()?.name || "record") + ".json", resolvedJson(ui.type, activeRecord()), "application/json");
-        if (action === "open-url") window.open(target.dataset.url, "_blank", "noopener,noreferrer");
-        if (action === "delete") {
-          const record = activeRecord();
-          if (!record) return;
-          record.deletedAt = now();
-          record.updatedAt = now();
-          ensureSelection();
-          scheduleSave(true);
-        }
-        if (action === "restore") {
-          const record = (data.records[target.dataset.type] || []).find((r) => r.id === target.dataset.id);
-          if (record) {
-            record.deletedAt = null;
-            record.updatedAt = now();
-            ui.type = target.dataset.type;
-            ui.selectedId = record.id;
-            ui.modal = null;
-            scheduleSave(true);
-          }
-        }
-        if (action === "purge") {
-          if (!confirm("Permanently purge this record?")) return;
-          data.records[target.dataset.type] = (data.records[target.dataset.type] || []).filter((r) => r.id !== target.dataset.id);
-          scheduleSave(true);
-        }
-      }
-      document.addEventListener("click", (event) => {
-        if (event.target.closest("[data-stop]") && !event.target.closest("[data-action]")) return;
-        const actionTarget = event.target.closest("[data-action]");
-        if (!actionTarget) return;
-        event.preventDefault();
-        if (actionTarget.dataset.action === "close-modal" && event.target.closest("[data-stop]") && actionTarget.classList.contains("modal-backdrop")) return;
-        handleAction(actionTarget);
-      });
-      document.addEventListener("input", (event) => {
-        const target = event.target;
-        if (target.dataset.ui === "search") {
-          ui.search = target.value;
-          ensureSelection();
-          render();
-          return;
-        }
-        if (target.dataset.platform) {
-          data.platformLinks[target.dataset.platform][target.dataset.link] = target.value;
-          scheduleSave(false);
-          return;
-        }
-        if (target.dataset.field) {
-          const record = activeRecord();
-          if (!record) return;
-          record[target.dataset.field] = target.value;
-          record.updatedAt = now();
-          scheduleSave(false);
-        }
-      });
-      document.addEventListener("change", (event) => {
-        const target = event.target;
-        if (target.dataset.ui === "filter") {
-          ui.filter = target.value;
-          ensureSelection();
-          render();
-          return;
-        }
-        if (target.dataset.ui === "sort") {
-          ui.sort = target.value;
-          render();
-          return;
-        }
-        if (target.dataset.flag) {
-          const record = activeRecord();
-          if (!record) return;
-          const set = new Set(record.flags || []);
-          if (target.checked) set.add(target.dataset.flag);
-          else set.delete(target.dataset.flag);
-          record.flags = [...set];
-          record.updatedAt = now();
-          scheduleSave(true);
-          return;
-        }
-        if (target.dataset.field) {
-          const record = activeRecord();
-          if (!record) return;
-          record[target.dataset.field] = target.value;
-          record.updatedAt = now();
-          scheduleSave(Boolean(target.dataset.rerender));
-        }
-      });
-      load();
+      setLoaded(true);
     })();
-  </script>
-</body>
-</html>
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const payload = JSON.stringify(statePayload);
+    setStorageBytes(estimateBytes(payload));
+    setSaveState("saving");
+    const timer = window.setTimeout(async () => {
+      try {
+        await storageWrite(STORAGE_KEY, payload);
+        setSaveState("saved");
+        setLastSaved(new Date().toLocaleTimeString());
+      } catch (error) {
+        console.warn("Forge save failed", error);
+        setSaveState("error");
+      }
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [statePayload, loaded]);
+
+  const items = collections[tab];
+  const tabMeta = TABS.find((t) => t.key === tab)!;
+  const current = (items.find((item) => item.id === sel[tab]) || null) as AnyRecord | null;
+  const linkedWorld = current && (tab === "characters" || tab === "storylines") ? worlds.find((w) => w.id === (current as CharacterRecord | StorylineRecord).worldId) || null : null;
+  const linkedChar = current && tab === "voice" ? chars.find((c) => c.id === (current as VoiceRecord).characterId) || null : null;
+  const linkedVoice = current && tab === "characters" ? voices.find((v) => v.characterId === current.id) || null : null;
+  const linkedStoryCharacters = current && tab === "storylines" ? chars.filter((c) => (current as StorylineRecord).characterIds.includes(c.id)) : [];
+  const worldCharacters = current && tab === "worlds" ? chars.filter((c) => c.worldId === current.id) : [];
+  const worldStorylines = current && tab === "worlds" ? storylines.filter((s) => s.worldId === current.id) : [];
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items
+      .filter((item) => mode === "all" || item.rating === mode)
+      .filter((item) => {
+        if (!q) return true;
+        const haystack = [item.name, ...FIELDS[tab].map(([key]) => String((item as Record<string, unknown>)[key] || ""))].join("\n").toLowerCase();
+        return haystack.includes(q);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [items, mode, query, tab]);
+
+  const setItemsFor = (key: TabKey, updater: (records: AnyRecord[]) => AnyRecord[]) => {
+    const stamp = (records: AnyRecord[]) => updater(records).map((record) => ({ ...record, updatedAt: record.updatedAt || nowIso() }));
+    if (key === "worlds") setWorlds((prev) => stamp(prev) as WorldRecord[]);
+    if (key === "characters") setChars((prev) => stamp(prev) as CharacterRecord[]);
+    if (key === "voice") setVoices((prev) => stamp(prev) as VoiceRecord[]);
+    if (key === "storylines") setStorylines((prev) => stamp(prev) as StorylineRecord[]);
+  };
+
+  const add = () => {
+    const factory: Record<TabKey, () => AnyRecord> = { worlds: emptyWorld, characters: emptyChar, voice: emptyVoice, storylines: emptyStoryline };
+    const next = factory[tab]();
+    setItemsFor(tab, (prev) => [...prev, next]);
+    setSel({ ...sel, [tab]: next.id });
+    setDeployView(false);
+  };
+
+  const update = (key: string, value: unknown) => {
+    if (!current) return;
+    setItemsFor(tab, (prev) => prev.map((item) => (item.id === current.id ? { ...item, [key]: value, updatedAt: nowIso() } : item)));
+  };
+
+  const softDelete = (id: string) => {
+    const record = items.find((item) => item.id === id);
+    if (!record) return;
+    setDeleted((prev) => [{ tombstoneId: uid(), collection: tab, record, deletedAt: nowIso() }, ...prev]);
+    setItemsFor(tab, (prev) => prev.filter((item) => item.id !== id));
+    if (sel[tab] === id) setSel({ ...sel, [tab]: null });
+  };
+
+  const restoreDeleted = (tombstoneId: string) => {
+    const tombstone = deleted.find((entry) => entry.tombstoneId === tombstoneId);
+    if (!tombstone) return;
+    setItemsFor(tombstone.collection, (prev) => [{ ...tombstone.record, updatedAt: nowIso() }, ...prev.filter((record) => record.id !== tombstone.record.id)]);
+    setDeleted((prev) => prev.filter((entry) => entry.tombstoneId !== tombstoneId));
+  };
+
+  const purgeDeleted = (tombstoneId: string) => setDeleted((prev) => prev.filter((entry) => entry.tombstoneId !== tombstoneId));
+
+  const toggleFlag = (flag: string) => {
+    if (!current) return;
+    const flags = current.flags.includes(flag) ? current.flags.filter((item) => item !== flag) : [...current.flags, flag];
+    update("flags", flags);
+  };
+
+  const copy = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(id);
+      window.setTimeout(() => setCopied(null), 1200);
+    } catch {
+      setCopied(null);
+    }
+  };
+
+  const download = (name: string, content: string, type = "text/plain") => {
+    const blob = new Blob([content], { type });
+    const anchor = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    anchor.href = url;
+    anchor.download = name.replace(/[^\w.-]+/g, "_");
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportBundle = () => download(`forge-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(statePayload, null, 2), "application/json");
+
+  const mergeById = <T extends { id: string }>(base: T[], incoming: T[]) => {
+    const map = new Map(base.map((record) => [record.id, record]));
+    incoming.forEach((record) => map.set(record.id || uid(), { ...record, id: record.id || uid() }));
+    return Array.from(map.values());
+  };
+
+  const handleImport = async (file?: File) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const isBundle = parsed.worlds || parsed.chars || parsed.voices || parsed.storylines;
+      if (isBundle) {
+        const replace = window.confirm("Replace current Forge state? Choose Cancel to merge imported records instead.");
+        const nextWorlds = (parsed.worlds || []).map(normalizeWorld);
+        const nextChars = (parsed.chars || []).map(normalizeChar);
+        const nextVoices = (parsed.voices || []).map(normalizeVoice);
+        const nextStorylines = (parsed.storylines || []).map(normalizeStoryline);
+        if (replace) {
+          setWorlds(nextWorlds);
+          setChars(nextChars);
+          setVoices(nextVoices);
+          setStorylines(nextStorylines);
+          setPlatforms((parsed.platforms || []).map(normalizePlatform));
+          setDeleted(parsed.deleted || []);
+        } else {
+          setWorlds((prev) => mergeById(prev, nextWorlds));
+          setChars((prev) => mergeById(prev, nextChars));
+          setVoices((prev) => mergeById(prev, nextVoices));
+          setStorylines((prev) => mergeById(prev, nextStorylines));
+          setPlatforms((prev) => mergeById(prev, (parsed.platforms || []).map(normalizePlatform)));
+        }
+      } else if (parsed.id && parsed.name) {
+        const normalized = normalizeByTab(tab, parsed);
+        setItemsFor(tab, (prev) => [{ ...normalized, id: prev.some((record) => record.id === normalized.id) ? uid() : normalized.id }, ...prev]);
+      }
+    } catch (error) {
+      alert(`Import failed: ${error instanceof Error ? error.message : "unknown error"}`);
+    } finally {
+      if (importRef.current) importRef.current.value = "";
+    }
+  };
+
+  const normalizeByTab = (key: TabKey, record: Partial<AnyRecord>): AnyRecord => {
+    if (key === "worlds") return normalizeWorld(record as Partial<WorldRecord>);
+    if (key === "characters") return normalizeChar(record as Partial<CharacterRecord>);
+    if (key === "voice") return normalizeVoice(record as Partial<VoiceRecord>);
+    return normalizeStoryline(record as Partial<StorylineRecord>);
+  };
+
+  const exportMD = () => {
+    if (!current) return;
+    let markdown = `# ${current.name}\n\n**Type:** ${tabMeta.singular}\n**Rating:** ${current.rating}\n`;
+    if (current.flags.length) markdown += `**Flags:** ${current.flags.join(", ")}\n`;
+    markdown += `**Updated:** ${current.updatedAt}\n\n`;
+    FIELDS[tab].forEach(([key, label]) => {
+      const value = String((current as Record<string, unknown>)[key] || "");
+      if (value) markdown += `## ${label}\n${value}\n\n`;
+    });
+    if (linkedWorld) markdown += `## Linked World: ${linkedWorld.name}\n${linkedWorld.cosmology || ""}\n\n${linkedWorld.rules ? `### Rules\n${linkedWorld.rules}\n\n` : ""}`;
+    if (linkedChar) markdown += `## Linked Character: ${linkedChar.name}\n${linkedChar.personality || linkedChar.speech || ""}\n\n`;
+    if (linkedStoryCharacters.length) markdown += `## Linked Characters\n${linkedStoryCharacters.map((c) => `- ${c.name}: ${compactWords(c.role || c.personality, 24)}`).join("\n")}\n\n`;
+    download(`${current.name}.md`, markdown, "text/markdown");
+  };
+
+  const exportJSON = () => {
+    if (!current) return;
+    download(`${current.name}.json`, JSON.stringify({ ...current, linkedWorld, linkedChar, linkedVoice, linkedStoryCharacters }, null, 2), "application/json");
+  };
+
+  const exportDirectorPrompt = () => {
+    if (!current || tab !== "worlds") return;
+    const world = current as WorldRecord;
+    const blocks = [
+      `# ${world.name} - AI Director Brief\n`,
+      world.voiceConventions && `## Voice & POV Conventions\n${world.voiceConventions}\n`,
+      world.tone && `## Tone\n${world.tone}\n`,
+      world.cosmology && `## Cosmology\n${world.cosmology}\n`,
+      world.rules && `## World Rules\n${world.rules}\n`,
+      world.mechanics && `## Mechanics & Resource Systems\n${world.mechanics}\n`,
+      world.antagonistLogic && `## Antagonist Logic\n${world.antagonistLogic}\n`,
+      world.factions && `## Factions\n${world.factions}\n`,
+      world.locations && `## Locations\n${world.locations}\n`,
+      world.aiDirectorPrompt && `## Director Instructions\n${world.aiDirectorPrompt}\n`,
+      "---\nUse this as a persistent system/developer-style brief when spinning up a new bot session.",
+    ].filter(Boolean);
+    download(`${world.name}-director-prompt.md`, blocks.join("\n"), "text/markdown");
+  };
+
+  const exportSessionBrief = () => {
+    if (!current) return;
+    const character = tab === "characters" ? (current as CharacterRecord) : tab === "voice" && linkedChar ? linkedChar : null;
+    const world = linkedWorld || (character ? worlds.find((w) => w.id === character.worldId) : tab === "worlds" ? (current as WorldRecord) : null);
+    const story = tab === "storylines" ? (current as StorylineRecord) : null;
+    const voice = character ? voices.find((v) => v.characterId === character.id) : linkedVoice;
+    const markdown = [
+      "# Session Continuity Brief",
+      world && `## World: ${world.name}\n${world.cosmology}\n\n### Rules\n${world.rules}\n\n### Tone\n${world.tone}\n\n### Director Instructions\n${world.aiDirectorPrompt}`,
+      character && `## Active Character: ${character.name}\n### Role\n${character.role}\n\n### Personality\n${character.personality}\n\n### Backstory\n${character.backstory}\n\n### Goals\n${character.goals}\n\n### Speech\n${character.speech}`,
+      voice && `## Voice Layer: ${voice.name}\n### Register\n${voice.register}\n\n### Cadence\n${voice.cadence}\n\n### Lexicon\n${voice.lexicon}`,
+      story && `## Storyline: ${story.name}\n### Premise\n${story.premise}\n\n### Current State\n${story.continuityState}\n\n### Branching Rules\n${story.branchingRules}`,
+      "## Continuity Instruction\nMaintain the above world logic, character behavior, voice conventions, and current narrative state. If a future user message conflicts with this brief, preserve the brief unless the user explicitly revises canon.",
+    ].filter(Boolean).join("\n\n");
+    download(`session-brief-${current.name}.md`, markdown, "text/markdown");
+  };
+
+  const buildFullDescription = (character: CharacterRecord) => [
+    character.role && `Role: ${character.role}`,
+    character.appearance && `Appearance: ${character.appearance}`,
+    character.personality && `Personality: ${character.personality}`,
+    character.backstory && `Backstory: ${character.backstory}`,
+    character.goals && `Goals: ${character.goals}`,
+    character.speech && `Speech Style: ${character.speech}`,
+  ].filter(Boolean).join("\n\n");
+
+  const buildWorldContext = (world?: WorldRecord | null) => world ? [
+    world.voiceConventions && `## Voice & POV Conventions\n${world.voiceConventions}`,
+    world.tone && `## Tone\n${world.tone}`,
+    world.cosmology && `## World Context\n${world.cosmology}`,
+    world.rules && `## World Rules\n${world.rules}`,
+    world.mechanics && `## Mechanics\n${world.mechanics}`,
+    world.antagonistLogic && `## Antagonist Logic\n${world.antagonistLogic}`,
+    world.factions && `## Factions\n${world.factions}`,
+    world.locations && `## Locations\n${world.locations}`,
+    world.aiDirectorPrompt && `## Director Instructions\n${world.aiDirectorPrompt}`,
+  ].filter(Boolean).join("\n\n") : "";
+
+  const buildCharacterDeploy = (profile: string, character: CharacterRecord): DeployBlock[] => {
+    const world = worlds.find((item) => item.id === character.worldId) || null;
+    const voice = voices.find((item) => item.characterId === character.id) || null;
+    const fullDescription = buildFullDescription(character);
+    const worldContext = buildWorldContext(world);
+    const tags = [character.rating, ...character.flags, world?.name ? slug(world.name) : ""].filter(Boolean).join(", ");
+    const promptDescription = [
+      worldContext,
+      `## Character: ${character.name}\n${fullDescription}`,
+      voice && `## Voice Layer\nRegister: ${voice.register}\nCadence: ${voice.cadence}\nLexicon: ${voice.lexicon}`,
+    ].filter(Boolean).join("\n\n");
+
+    if (profile === "character-ai") {
+      return [
+        ["name", "Name", character.name],
+        ["description", "Short Description", summarizeCharacter(character)],
+        ["greeting", "Greeting", character.speech || `{{user}} encounters ${character.name}. Begin in character, grounded in the current scene.`],
+        ["definition", "Definition / Advanced", promptDescription],
+        ["examples", "Example Dialogue", character.speech],
+      ];
+    }
+    if (profile === "sillytavern") {
+      return [
+        ["name", "Name", character.name],
+        ["description", "Description", fullDescription],
+        ["personality", "Personality", character.personality],
+        ["scenario", "Scenario", [world?.cosmology, world?.rules, character.goals].filter(Boolean).join("\n\n")],
+        ["first_mes", "First Message", character.speech || "{{char}} studies {{user}} for a moment before speaking."],
+        ["mes_example", "Example Messages", character.speech],
+        ["creator_notes", "Creator Notes", promptDescription],
+      ];
+    }
+    if (profile === "generic") {
+      return [
+        ["system", "System / Director Brief", promptDescription],
+        ["summary", "30-Word Character Summary", summarizeCharacter(character)],
+        ["tags", "Tags", tags],
+        ["continuity", "Continuity Instruction", `Preserve ${character.name}'s goals, constraints, speech habits, and linked world rules. Do not invent new cosmology unless explicitly authorized by the user.`],
+      ];
+    }
+    return [
+      ["name", "Name", character.name],
+      ["summary", "Description Summary (<=30 words)", summarizeCharacter(character)],
+      ["fullDescription", "Description", fullDescription],
+      ["tags", "Tags", tags],
+      ["promptDescription", "Prompt Description (AI)", promptDescription],
+      ["speech", "Example Dialogues", character.speech],
+    ];
+  };
+
+  const buildStorylineDeploy = (story: StorylineRecord): DeployBlock[] => {
+    const world = worlds.find((item) => item.id === story.worldId) || null;
+    const cast = chars.filter((character) => story.characterIds.includes(character.id));
+    return [
+      ["name", "Storyline Name", story.name],
+      ["summary", "Storyline Summary", compactWords(story.premise || story.openingScene, 40)],
+      ["opening", "Opening Scene", story.openingScene],
+      ["premise", "Premise", story.premise],
+      ["cast", "Linked Cast", cast.map((character) => `${character.name}: ${compactWords(character.role || character.personality, 24)}`).join("\n")],
+      ["rules", "Branching / Continuity Rules", [buildWorldContext(world), story.branchingRules, story.continuityState, story.endingConditions].filter(Boolean).join("\n\n")],
+      ["beats", "Major Beats", story.beats],
+    ];
+  };
+
+  const deployBlocks = current && tab === "characters"
+    ? buildCharacterDeploy(deployProfile, current as CharacterRecord)
+    : current && tab === "storylines"
+      ? buildStorylineDeploy(current as StorylineRecord)
+      : [];
+  const markerText = deployBlocks.map(([, , value]) => value).join("\n\n");
+  const markerHasUser = markerText.includes("{{user}}");
+  const pronounHits = (markerText.match(/\b(you|your|yours|yourself)\b/gi) || []).length;
+  const storagePct = Math.min(100, Math.round((storageBytes / FIVE_MB) * 100));
+  const storageTone = storagePct >= 90 ? "text-rose-400" : storagePct >= 70 ? "text-amber-400" : "text-zinc-500";
+
+  const generateParsePrompt = () => {
+    if (!current || !parseInput.trim()) return;
+    const fieldList = FIELDS[tab].map(([key, label]) => `  "${key}": "${label}"`).join(",\n");
+    const prompt = `Parse the following free-form concept into structured fields for a ${tabMeta.singular} record in my worldbuilding forge. Return ONLY valid JSON. Do not fabricate unsupported facts.\n\nTarget record: ${tabMeta.singular} "${current.name}"\n\nFields to fill:\n{\n${fieldList}\n}\n\nConcept text:\n"""\n${parseInput}\n"""`;
+    copy(prompt, "parsePrompt");
+    setParseMsg("Prompt copied. Paste it into your model of choice, then paste the JSON response below and preview the diff before applying.");
+  };
+
+  const previewParse = () => {
+    if (!current || !parseOutput.trim()) return;
+    try {
+      const match = parseOutput.match(/```json\s*([\s\S]*?)```/) || parseOutput.match(/\{[\s\S]*\}/);
+      const jsonStr = match ? (match[1] || match[0]) : parseOutput;
+      const parsed = JSON.parse(jsonStr.trim());
+      const allowed = new Set(FIELDS[tab].map(([key]) => key));
+      const draft: Record<string, string> = {};
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (allowed.has(key) && typeof value === "string" && value.trim()) draft[key] = value.trim();
+      });
+      setParseDraft(draft);
+      setParseSelected(Object.fromEntries(Object.keys(draft).map((key) => [key, true])));
+      setParseMsg(Object.keys(draft).length ? `Preview ready: ${Object.keys(draft).length} field(s) detected.` : "Valid JSON, but no supported fields were found.");
+    } catch (error) {
+      setParseMsg(`Parse error: ${error instanceof Error ? error.message : "invalid JSON"}. Ask the model to return valid JSON only.`);
+    }
+  };
+
+  const applyParse = () => {
+    if (!current || !parseDraft) return;
+    const updated = { ...(current as Record<string, unknown>), updatedAt: nowIso() } as AnyRecord & Record<string, unknown>;
+    let applied = 0;
+    Object.entries(parseDraft).forEach(([key, value]) => {
+      if (!parseSelected[key]) return;
+      updated[key] = parseApplyMode === "replace" || !updated[key] ? value : `${updated[key]}\n\n${value}`;
+      applied++;
+    });
+    setItemsFor(tab, (prev) => prev.map((item) => (item.id === current.id ? updated : item)));
+    setParseMsg(`Applied ${applied} field${applied === 1 ? "" : "s"} by ${parseApplyMode}.`);
+    setParseInput("");
+    setParseOutput("");
+    setParseDraft(null);
+    setParseSelected({});
+    window.setTimeout(() => {
+      setShowParse(false);
+      setParseMsg("");
+    }, 1000);
+  };
+
+  const addPlatform = () => setPlatforms((prev) => [...prev, { id: uid(), name: "New Platform", tos: "", promos: "", readme: "", notes: "" }]);
+  const updatePlatform = (id: string, key: keyof PlatformLink, value: string) => setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, [key]: value } : p)));
+  const deletePlatform = (id: string) => setPlatforms((prev) => prev.filter((p) => p.id !== id));
+  const ratingColor = (rating: Rating) => rating === "nsfw" ? "text-rose-400 border-rose-900" : "text-emerald-400 border-emerald-900";
+  const ratingDot = (rating: Rating) => rating === "nsfw" ? "bg-rose-500" : "bg-emerald-500";
+
+  const renderDeploy = () => (
+    <div className="p-6 max-w-4xl">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider">Deploy - tap to copy</div>
+          <div className="text-xs text-zinc-600 mt-1">Manual transfer cockpit. No external platform integration is attempted.</div>
+        </div>
+        <button onClick={() => setDeployView(false)} className="flex items-center gap-1 px-3 py-1 border border-zinc-800 hover:border-emerald-600 text-xs"><Edit3 size={12} /> edit</button>
+      </div>
+
+      {tab === "characters" && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <select value={deployProfile} onChange={(event) => setDeployProfile(event.target.value)} className="bg-zinc-900 border border-zinc-800 p-2 text-xs focus:outline-none focus:border-emerald-600">
+            {DEPLOY_PROFILES.map((profile) => <option key={profile.key} value={profile.key}>{profile.name}</option>)}
+          </select>
+          <div className="text-xs text-zinc-500">{DEPLOY_PROFILES.find((profile) => profile.key === deployProfile)?.note}</div>
+        </div>
+      )}
+
+      <div className={`mb-4 p-3 border text-xs ${markerHasUser ? "border-emerald-900 bg-emerald-950/20 text-emerald-300" : pronounHits ? "border-amber-900 bg-amber-950/20 text-amber-300" : "border-zinc-800 bg-zinc-900/30 text-zinc-500"}`}>
+        <Shield size={12} className="inline mr-1" />
+        {markerHasUser ? "{{user}} present" : pronounHits ? "Possible {{user}} pass needed" : "No obvious {{user}} requirement"}
+        {!markerHasUser && pronounHits > 0 && ` - detected ${pronounHits} second-person pronoun(s). Review manually.`}
+        <button onClick={() => copy("{{user}}", "user-marker")} className="ml-3 underline decoration-dotted hover:text-emerald-200">copy marker</button>
+      </div>
+
+      {deployBlocks.map(([key, label, value]) => {
+        if (!value) return null;
+        const wc = label.toLowerCase().includes("summary") ? wordCount(value) : null;
+        return (
+          <div key={key} onClick={() => copy(value, key)} className="mb-3 p-3 bg-zinc-900 border border-zinc-800 hover:border-emerald-700 cursor-pointer group">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-xs text-emerald-500 uppercase tracking-wider">{label}{wc !== null && ` - ${wc} words`}</div>
+              {copied === key ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-zinc-600 group-hover:text-emerald-500" />}
+            </div>
+            <div className="text-xs text-zinc-300 whitespace-pre-wrap font-mono">{value}</div>
+          </div>
+        );
+      })}
+
+      {(current?.flags.length ?? 0) > 0 && (
+        <div className="mt-4 p-3 border border-amber-900/50 bg-amber-950/20 text-xs text-amber-300">
+          <AlertTriangle size={12} className="inline mr-1" /> Self-tagged flags: {current?.flags.join(", ")} - verify against target platform policy before public submission.
+        </div>
+      )}
+    </div>
+  );
+
+  const renderEditor = () => (
+    <div className="p-6 max-w-4xl">
+      <div className="flex flex-wrap gap-2 mb-4">
+        <input value={current?.name || ""} onChange={(event) => update("name", event.target.value)} className={`flex-1 min-w-[240px] bg-transparent border-b text-xl focus:outline-none pb-1 ${current ? ratingColor(current.rating) : ""}`} />
+        {(tab === "characters" || tab === "storylines") && <button onClick={() => setDeployView(true)} className="px-3 py-1 border border-emerald-800 hover:border-emerald-500 text-emerald-400 text-xs flex items-center gap-1"><Eye size={12} />deploy</button>}
+        <button onClick={() => setShowParse(true)} className="px-3 py-1 border border-cyan-800 hover:border-cyan-500 text-cyan-400 text-xs flex items-center gap-1">parse</button>
+        {tab === "worlds" && <button onClick={exportDirectorPrompt} className="px-3 py-1 border border-amber-800 hover:border-amber-500 text-amber-400 text-xs flex items-center gap-1"><Download size={12} />director</button>}
+        <button onClick={exportSessionBrief} className="px-3 py-1 border border-purple-800 hover:border-purple-500 text-purple-300 text-xs flex items-center gap-1"><Download size={12} />session</button>
+        <button onClick={exportMD} className="px-3 py-1 border border-zinc-800 hover:border-emerald-600 text-xs flex items-center gap-1"><Download size={12} />md</button>
+        <button onClick={exportJSON} className="px-3 py-1 border border-zinc-800 hover:border-emerald-600 text-xs flex items-center gap-1"><Download size={12} />json</button>
+        {tab === "voice" && <button onClick={() => setShowTips(true)} className="px-3 py-1 border border-emerald-800 hover:border-emerald-500 text-emerald-400 text-xs flex items-center gap-1"><BookOpen size={12} />tips</button>}
+      </div>
+
+      <div className="mb-4 p-3 border border-zinc-800 bg-zinc-900/30">
+        <div className="flex items-center gap-3 mb-2">
+          <Shield size={12} className="text-zinc-500" />
+          <span className="text-xs text-zinc-500 uppercase tracking-wider">content rating</span>
+          <div className="flex gap-1">
+            {(["sfw", "nsfw"] as Rating[]).map((rating) => (
+              <button key={rating} onClick={() => update("rating", rating)} className={`px-2 py-0.5 text-xs uppercase ${current?.rating === rating ? (rating === "nsfw" ? "bg-rose-900/40 text-rose-300 border border-rose-700" : "bg-emerald-900/40 text-emerald-300 border border-emerald-700") : "text-zinc-600 border border-zinc-800"}`}>{rating}</button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {FLAGS.map((flag) => (
+            <button key={flag} onClick={() => toggleFlag(flag)} className={`px-2 py-0.5 text-xs ${current?.flags.includes(flag) ? "bg-amber-900/40 text-amber-300 border border-amber-700" : "text-zinc-600 border border-zinc-800 hover:border-zinc-600"}`}>{flag}</button>
+          ))}
+        </div>
+        <div className="mt-2 text-xs text-zinc-600 italic">Self-tagged, not a moderation oracle. Verify against target platform policy.</div>
+      </div>
+
+      {tab === "characters" && current && (
+        <div className="mb-4">
+          <label className="text-xs text-zinc-500 flex items-center gap-1"><Link2 size={12} /> linked world</label>
+          <select value={(current as CharacterRecord).worldId} onChange={(event) => update("worldId", event.target.value)} className="w-full bg-zinc-900 border border-zinc-800 p-2 mt-1 focus:outline-none focus:border-emerald-600">
+            <option value="">- none -</option>
+            {worlds.map((world) => <option key={world.id} value={world.id}>{world.name}</option>)}
+          </select>
+          {linkedWorld && <div className="mt-2 p-3 bg-zinc-900/50 border-l-2 border-emerald-700 text-xs text-zinc-400 whitespace-pre-wrap">{linkedWorld.cosmology || "(no cosmology set)"}{linkedWorld.tone && `\n\nTone: ${linkedWorld.tone}`}</div>}
+        </div>
+      )}
+
+      {tab === "voice" && current && (
+        <div className="mb-4">
+          <label className="text-xs text-zinc-500 flex items-center gap-1"><Link2 size={12} /> linked character</label>
+          <select value={(current as VoiceRecord).characterId} onChange={(event) => update("characterId", event.target.value)} className="w-full bg-zinc-900 border border-zinc-800 p-2 mt-1 focus:outline-none focus:border-emerald-600">
+            <option value="">- none -</option>
+            {chars.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+          </select>
+          {linkedChar && <div className="mt-2 p-3 bg-zinc-900/50 border-l-2 border-emerald-700 text-xs text-zinc-400 whitespace-pre-wrap">{linkedChar.speech || linkedChar.personality || "(no speech/personality set)"}</div>}
+        </div>
+      )}
+
+      {tab === "storylines" && current && (
+        <div className="mb-4 space-y-3">
+          <div>
+            <label className="text-xs text-zinc-500 flex items-center gap-1"><Link2 size={12} /> linked world</label>
+            <select value={(current as StorylineRecord).worldId} onChange={(event) => update("worldId", event.target.value)} className="w-full bg-zinc-900 border border-zinc-800 p-2 mt-1 focus:outline-none focus:border-emerald-600">
+              <option value="">- none -</option>
+              {worlds.map((world) => <option key={world.id} value={world.id}>{world.name}</option>)}
+            </select>
+          </div>
+          <div className="p-3 border border-zinc-800 bg-zinc-900/30">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">linked cast</div>
+            <div className="grid md:grid-cols-2 gap-1">
+              {chars.map((character) => {
+                const checked = (current as StorylineRecord).characterIds.includes(character.id);
+                const nextIds = checked ? (current as StorylineRecord).characterIds.filter((id) => id !== character.id) : [...(current as StorylineRecord).characterIds, character.id];
+                return <button key={character.id} onClick={() => update("characterIds", nextIds)} className={`text-left px-2 py-1 border text-xs ${checked ? "border-emerald-700 text-emerald-300 bg-emerald-950/20" : "border-zinc-800 text-zinc-500 hover:border-zinc-600"}`}>{character.name}</button>;
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "worlds" && current && (worldCharacters.length > 0 || worldStorylines.length > 0) && (
+        <div className="mb-4 grid md:grid-cols-2 gap-3">
+          <div className="p-3 border border-zinc-800 bg-zinc-900/30">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">characters in this world</div>
+            {worldCharacters.map((character) => <button key={character.id} onClick={() => { setTab("characters"); setSel({ ...sel, characters: character.id }); }} className="block w-full text-left px-2 py-1 mb-1 border border-zinc-800 hover:border-emerald-700 text-xs text-zinc-300">{character.name}</button>)}
+          </div>
+          <div className="p-3 border border-zinc-800 bg-zinc-900/30">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">storylines in this world</div>
+            {worldStorylines.map((story) => <button key={story.id} onClick={() => { setTab("storylines"); setSel({ ...sel, storylines: story.id }); }} className="block w-full text-left px-2 py-1 mb-1 border border-zinc-800 hover:border-emerald-700 text-xs text-zinc-300">{story.name}</button>)}
+          </div>
+        </div>
+      )}
+
+      {FIELDS[tab].map(([key, label]) => (
+        <div key={key} className="mb-4">
+          <label className="text-xs text-zinc-500 uppercase tracking-wider">{label}</label>
+          <textarea value={current ? String((current as Record<string, unknown>)[key] || "") : ""} onChange={(event) => update(key, event.target.value)} rows={4} className="w-full bg-zinc-900 border border-zinc-800 p-2 mt-1 focus:outline-none focus:border-emerald-600 resize-y text-xs" />
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="flex h-screen bg-zinc-950 text-zinc-100 font-mono text-sm">
+      <div className="w-72 border-r border-zinc-800 flex flex-col">
+        <div className="p-3 border-b border-zinc-800">
+          <div className="text-emerald-400 uppercase tracking-wider text-xs">World / Character Forge</div>
+          <div className="text-zinc-600 text-xs mt-1">memory layer for bots that forget context</div>
+        </div>
+
+        <div className="grid grid-cols-4 border-b border-zinc-800">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button key={t.key} title={t.label} onClick={() => { setTab(t.key); setDeployView(false); }} className={`p-3 flex justify-center ${tab === t.key ? "bg-zinc-800 text-emerald-400" : "text-zinc-500 hover:text-zinc-300"}`}>
+                <Icon size={16} />
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="p-2 border-b border-zinc-800 flex gap-1">
+          {(["all", "sfw", "nsfw"] as FilterMode[]).map((filterMode) => (
+            <button key={filterMode} onClick={() => setMode(filterMode)} className={`flex-1 px-2 py-1 text-xs uppercase ${mode === filterMode ? (filterMode === "nsfw" ? "bg-rose-900/40 text-rose-300" : filterMode === "sfw" ? "bg-emerald-900/40 text-emerald-300" : "bg-zinc-800 text-zinc-200") : "text-zinc-600 hover:text-zinc-400"}`}>{filterMode}</button>
+          ))}
+        </div>
+
+        <div className="p-2 border-b border-zinc-800 space-y-2">
+          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-2 py-1">
+            <Search size={12} className="text-zinc-600" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`search ${tabMeta.label.toLowerCase()}`} className="w-full bg-transparent focus:outline-none text-xs text-zinc-300" />
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            <button onClick={add} className="flex items-center justify-center gap-1 p-2 bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-400 rounded text-xs"><Plus size={12} /> new</button>
+            <button onClick={() => importRef.current?.click()} className="flex items-center justify-center gap-1 p-2 border border-zinc-800 hover:border-cyan-700 text-cyan-400 rounded text-xs"><Upload size={12} /> load</button>
+            <button onClick={exportBundle} className="flex items-center justify-center gap-1 p-2 border border-zinc-800 hover:border-emerald-700 text-zinc-300 rounded text-xs"><Download size={12} /> all</button>
+          </div>
+          <input ref={importRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => handleImport(event.target.files?.[0])} />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {visible.map((item) => (
+            <div key={item.id} onClick={() => setSel({ ...sel, [tab]: item.id })} className={`group flex items-center gap-2 p-2 border-b border-zinc-900 cursor-pointer ${sel[tab] === item.id ? "bg-zinc-800" : "hover:bg-zinc-900"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${ratingDot(item.rating)}`} />
+              <span className="flex-1 truncate">{item.name}</span>
+              <button title="Soft delete" onClick={(event) => { event.stopPropagation(); softDelete(item.id); }} className="opacity-0 group-hover:opacity-100 text-red-400"><Trash2 size={12} /></button>
+            </div>
+          ))}
+          {!visible.length && <div className="p-4 text-zinc-600 text-xs">empty or filtered</div>}
+        </div>
+
+        <div className="border-t border-zinc-800 p-2 space-y-1">
+          <div className="flex items-center justify-between text-xs text-zinc-600 px-1">
+            <span className="flex items-center gap-1"><Save size={12} /> {saveState}{lastSaved && saveState === "saved" ? ` ${lastSaved}` : ""}</span>
+            <span className={storageTone}><Database size={12} className="inline mr-1" />{storagePct}%</span>
+          </div>
+          <button onClick={() => setShowTrash(true)} className="w-full flex items-center gap-2 p-2 text-zinc-500 hover:text-rose-400 text-xs">
+            <RotateCcw size={12} /> trash / restore ({deleted.length})
+          </button>
+          <button onClick={() => setShowPlatforms(true)} className="w-full flex items-center gap-2 p-2 text-zinc-500 hover:text-emerald-400 text-xs">
+            <LinkIcon size={12} /> platform links
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {!current ? (
+          <div className="h-full flex items-center justify-center text-zinc-600">select or create a {tabMeta.singular}</div>
+        ) : deployView && (tab === "characters" || tab === "storylines") ? renderDeploy() : renderEditor()}
+      </div>
+
+      {showTips && (
+        <Modal tone="emerald" title="Audacity Quick Tips" onClose={() => setShowTips(false)} icon={<BookOpen size={14} />}>
+          <div className="p-4 space-y-3">
+            {TIPS.map((tip) => (
+              <div key={tip.h} className="border-l-2 border-emerald-800 pl-3">
+                <div className="text-emerald-400 text-xs uppercase tracking-wider mb-1">{tip.h}</div>
+                <div className="text-zinc-300 text-xs leading-relaxed">{tip.b}</div>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {showTrash && (
+        <Modal tone="rose" title="Trash / Restore" onClose={() => setShowTrash(false)} icon={<RotateCcw size={14} />}>
+          <div className="p-4 space-y-2">
+            <div className="text-xs text-zinc-500 italic border-l-2 border-amber-800 pl-3 mb-3">Soft delete is recoverable. Permanent purge is not.</div>
+            {deleted.map((entry) => (
+              <div key={entry.tombstoneId} className="border border-zinc-800 p-3 flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="text-zinc-200 text-sm">{entry.record.name}</div>
+                  <div className="text-zinc-600 text-xs">{entry.collection} - deleted {new Date(entry.deletedAt).toLocaleString()}</div>
+                </div>
+                <button onClick={() => restoreDeleted(entry.tombstoneId)} className="px-2 py-1 text-xs border border-emerald-800 text-emerald-400 hover:border-emerald-500">restore</button>
+                <button onClick={() => purgeDeleted(entry.tombstoneId)} className="px-2 py-1 text-xs border border-rose-900 text-rose-400 hover:border-rose-600">purge</button>
+              </div>
+            ))}
+            {!deleted.length && <div className="text-center text-zinc-600 text-xs py-6">trash empty</div>}
+          </div>
+        </Modal>
+      )}
+
+      {showPlatforms && (
+        <Modal tone="emerald" title="Platform Links" onClose={() => setShowPlatforms(false)} icon={<LinkIcon size={14} />} extra={<button onClick={addPlatform} className="text-emerald-400 hover:text-emerald-300"><Plus size={14} /></button>}>
+          <div className="p-4 space-y-4">
+            <div className="text-xs text-zinc-500 italic border-l-2 border-amber-800 pl-3">The forge cannot monitor external sites. Paste ToS, promo, and readme URLs here and open them manually.</div>
+            {platforms.map((platform) => (
+              <div key={platform.id} className="border border-zinc-800 p-3 space-y-2">
+                <div className="flex gap-2">
+                  <input value={platform.name} onChange={(event) => updatePlatform(platform.id, "name", event.target.value)} className="flex-1 bg-transparent border-b border-zinc-800 text-emerald-400 text-sm focus:outline-none focus:border-emerald-600 pb-1" />
+                  <button onClick={() => deletePlatform(platform.id)} className="text-red-500 hover:text-red-400"><Trash2 size={12} /></button>
+                </div>
+                {(["tos", "promos", "readme"] as const).map((key) => (
+                  <div key={key} className="flex gap-2 items-center">
+                    <input value={platform[key]} onChange={(event) => updatePlatform(platform.id, key, event.target.value)} placeholder={key === "tos" ? "Terms of Service" : key === "promos" ? "Promotions / Programs" : "Readme / Docs"} className="flex-1 bg-zinc-900 border border-zinc-800 p-1.5 text-xs focus:outline-none focus:border-emerald-600" />
+                    {platform[key] && <a href={platform[key]} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-300 text-xs">open</a>}
+                  </div>
+                ))}
+                <textarea value={platform.notes} onChange={(event) => updatePlatform(platform.id, "notes", event.target.value)} placeholder="Notes: last checked date, limits, etc." rows={2} className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-xs focus:outline-none focus:border-emerald-600 resize-y" />
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {showParse && (
+        <Modal tone="cyan" title={`Paste & Parse with Diff - ${tabMeta.singular}`} onClose={() => { setShowParse(false); setParseMsg(""); }} icon={null}>
+          <div className="p-4 space-y-4">
+            <div className="text-xs text-zinc-500 italic border-l-2 border-cyan-800 pl-3">Free-form text goes in, structured fields come out, but nothing touches the record until you preview and approve the diff.</div>
+
+            <div>
+              <label className="text-xs text-cyan-500 uppercase tracking-wider">1. your concept</label>
+              <textarea value={parseInput} onChange={(event) => setParseInput(event.target.value)} rows={5} placeholder="Paste concept notes..." className="w-full bg-zinc-900 border border-zinc-800 p-2 mt-1 focus:outline-none focus:border-cyan-600 resize-y text-xs" />
+              <button onClick={generateParsePrompt} disabled={!parseInput.trim()} className="mt-2 px-3 py-1 border border-cyan-800 hover:border-cyan-500 text-cyan-400 text-xs disabled:opacity-30 disabled:cursor-not-allowed">copy parse prompt</button>
+            </div>
+
+            <div>
+              <label className="text-xs text-cyan-500 uppercase tracking-wider">2. paste JSON response</label>
+              <textarea value={parseOutput} onChange={(event) => setParseOutput(event.target.value)} rows={6} placeholder={'{\n  "cosmology": "...",\n  "rules": "..."\n}'} className="w-full bg-zinc-900 border border-zinc-800 p-2 mt-1 focus:outline-none focus:border-cyan-600 resize-y text-xs font-mono" />
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <button onClick={previewParse} disabled={!parseOutput.trim()} className="px-3 py-1 border border-cyan-800 hover:border-cyan-500 text-cyan-400 text-xs disabled:opacity-30 disabled:cursor-not-allowed">preview diff</button>
+                <select value={parseApplyMode} onChange={(event) => setParseApplyMode(event.target.value as "append" | "replace")} className="bg-zinc-900 border border-zinc-800 p-1 text-xs focus:outline-none focus:border-cyan-600">
+                  <option value="append">append selected fields</option>
+                  <option value="replace">replace selected fields</option>
+                </select>
+                <button onClick={applyParse} disabled={!parseDraft} className="px-3 py-1 border border-emerald-800 hover:border-emerald-500 text-emerald-400 text-xs disabled:opacity-30 disabled:cursor-not-allowed">apply selected</button>
+              </div>
+            </div>
+
+            {parseDraft && (
+              <div className="space-y-3">
+                {Object.entries(parseDraft).map(([key, incoming]) => {
+                  const label = FIELDS[tab].find(([fieldKey]) => fieldKey === key)?.[1] || key;
+                  const existing = current ? String((current as Record<string, unknown>)[key] || "") : "";
+                  return (
+                    <div key={key} className="border border-zinc-800 bg-zinc-900/30 p-3">
+                      <label className="flex items-center gap-2 text-xs text-cyan-400 uppercase tracking-wider mb-2">
+                        <input type="checkbox" checked={!!parseSelected[key]} onChange={(event) => setParseSelected({ ...parseSelected, [key]: event.target.checked })} /> {label}
+                      </label>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-zinc-600 mb-1">existing</div>
+                          <div className="text-xs text-zinc-400 whitespace-pre-wrap border border-zinc-800 p-2 min-h-24">{existing || "(empty)"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-cyan-600 mb-1">incoming</div>
+                          <div className="text-xs text-zinc-300 whitespace-pre-wrap border border-cyan-900/60 p-2 min-h-24">{incoming}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {parseMsg && <div className="text-xs text-cyan-300 p-2 bg-cyan-950/30 border border-cyan-900">{parseMsg}</div>}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Modal({
+  children,
+  extra,
+  icon,
+  onClose,
+  title,
+  tone,
+}: {
+  children: ReactNode;
+  extra?: ReactNode;
+  icon: ReactNode;
+  onClose: () => void;
+  title: string;
+  tone: "cyan" | "emerald" | "rose";
+}) {
+  const border = tone === "rose" ? "border-rose-900" : tone === "cyan" ? "border-cyan-900" : "border-emerald-900";
+  const text = tone === "rose" ? "text-rose-300" : tone === "cyan" ? "text-cyan-400" : "text-emerald-400";
+  return (
+    <div onClick={onClose} className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+      <div onClick={(event) => event.stopPropagation()} className={`bg-zinc-950 border ${border} max-w-4xl w-full max-h-[88vh] overflow-y-auto`}>
+        <div className={`sticky top-0 bg-zinc-950 border-b ${border} p-4 flex items-center justify-between`}>
+          <div className={`flex items-center gap-2 ${text}`}><span>{icon}</span><span className="uppercase tracking-wider text-xs">{title}</span></div>
+          <div className="flex gap-2">
+            {extra}
+            <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200"><X size={14} /></button>
+          </div>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
