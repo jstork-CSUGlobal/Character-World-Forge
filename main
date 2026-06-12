@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BookOpen,
@@ -134,7 +134,7 @@ const TABS: Array<{ key: TabKey; label: string; singular: string; icon: typeof G
   { key: "storylines", label: "Storylines", singular: "storyline", icon: FileText },
 ];
 
-const FIELDS: Record<TabKey, Array<[keyof AnyRecord & string, string]>> = {
+const FIELDS: Record<TabKey, Array<[string, string]>> = {
   worlds: [
     ["cosmology", "Cosmology / Metaphysics"],
     ["factions", "Factions"],
@@ -1070,9 +1070,9 @@ function Modal({
   title,
   tone,
 }: {
-  children: React.ReactNode;
-  extra?: React.ReactNode;
-  icon: React.ReactNode;
+  children: ReactNode;
+  extra?: ReactNode;
+  icon: ReactNode;
   onClose: () => void;
   title: string;
   tone: "cyan" | "emerald" | "rose";
