@@ -604,7 +604,7 @@
               <div class="panel-head">
                 <div>
                   <h2>${esc(record.name || "Untitled " + labelFor(ui.type))}</h2>
-                  <div class="muted">Created ${new Date(record.createdAt).toLocaleString()} · Updated ${new Date(record.updatedAt).toLocaleString()}</div>
+                  <div class="muted">Created ${new Date(record.createdAt).toLocaleString()} - Updated ${new Date(record.updatedAt).toLocaleString()}</div>
                 </div>
                 <div class="actions">
                   ${ui.type === "worlds" ? `<button class="amber" data-action="director">Director</button>` : ""}
@@ -888,7 +888,7 @@ Forge integration: paste reference URLs into refAudio, put direction notes in sa
           <div class="panel-body">
             ${trashed.length ? trashed.map((record) => `
               <div class="trash-row">
-                <div><strong>${esc(record.name)}</strong><div class="muted">${labelFor(record._type)} · deleted ${new Date(record.deletedAt).toLocaleString()}</div></div>
+                <div><strong>${esc(record.name)}</strong><div class="muted">${labelFor(record._type)} - deleted ${new Date(record.deletedAt).toLocaleString()}</div></div>
                 <button data-action="restore" data-type="${record._type}" data-id="${record.id}">Restore</button>
                 <button class="danger" data-action="purge" data-type="${record._type}" data-id="${record.id}">Purge</button>
               </div>
@@ -1050,26 +1050,53 @@ ${(world.flags || []).join(", ") || "none"}`;
           return;
         }
         if (parsed.records) {
-          ["worlds", "characters", "voices"].forEach((type) => {
-            (parsed.records[type] || []).forEach((record) => importRecord(type, record));
-          });
+          importBackup(parsed.records);
         } else {
           const type = parsed.type || ui.type;
-          importRecord(type, parsed.record || parsed);
+          const imported = importRecord(type, parsed.record || parsed);
+          if (!imported) return;
+          if (type === "characters" && parsed.linkedWorld) {
+            imported.worldId = importRecord("worlds", parsed.linkedWorld, false).id;
+          }
+          if (type === "voices" && parsed.linkedCharacter) {
+            const importedChar = importRecord("characters", parsed.linkedCharacter, false);
+            imported.characterId = importedChar.id;
+            if (parsed.linkedWorld) importedChar.worldId = importRecord("worlds", parsed.linkedWorld, false).id;
+          }
         }
         ui.modal = null;
         scheduleSave(true);
       }
-      function importRecord(type, record) {
-        if (!data.records[type]) return;
+      function importBackup(records) {
+        const idMap = { worlds: {}, characters: {}, voices: {} };
+        const importedByType = { worlds: [], characters: [], voices: [] };
+        ["worlds", "characters", "voices"].forEach((type) => {
+          (records[type] || []).forEach((record) => {
+            const imported = importRecord(type, record, false);
+            idMap[type][record.id] = imported.id;
+            importedByType[type].push(imported);
+          });
+        });
+        importedByType.characters.forEach((record) => {
+          if (idMap.worlds[record.worldId]) record.worldId = idMap.worlds[record.worldId];
+        });
+        importedByType.voices.forEach((record) => {
+          if (idMap.characters[record.characterId]) record.characterId = idMap.characters[record.characterId];
+        });
+      }
+      function importRecord(type, record, selectImported = true) {
+        if (!data.records[type]) return null;
         const fresh = { ...record, id: uid(), createdAt: now(), updatedAt: now(), deletedAt: null };
         fresh.name = fresh.name || "Imported " + labelFor(type);
         fresh.flags = Array.isArray(fresh.flags) ? fresh.flags.filter((flag) => FLAGS.includes(flag)) : [];
         fresh.rating = ["sfw", "nsfw", "unrated"].includes(fresh.rating) ? fresh.rating : "unrated";
         FIELD_CONFIG[type].forEach(([key]) => fresh[key] = fresh[key] || "");
         data.records[type].push(fresh);
-        ui.type = type;
-        ui.selectedId = fresh.id;
+        if (selectImported) {
+          ui.type = type;
+          ui.selectedId = fresh.id;
+        }
+        return fresh;
       }
       function handleAction(target) {
         const action = target.dataset.action;
